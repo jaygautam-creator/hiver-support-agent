@@ -1,0 +1,53 @@
+{
+  "key": "6c786b42509086db109fd07c",
+  "payload": {
+    "model": "gemini-3.5-flash-lite",
+    "system": "You are evaluating first-response replies written for AppleSupport\non Twitter.\n\nContext you must hold: on this channel Apple's first reply is TRIAGE, not a\nresolution. Acknowledging and asking one diagnostic question is the correct\nbehaviour and should score well. Do not penalise a reply for failing to solve\nthe problem outright, and do not reward a long reply for being thorough.\n\nLinks in the historical examples were replaced with the placeholder <url>\nduring data cleaning. A reply containing <url> is therefore correct behaviour.\nA reply containing a real http URL is fabricated -- groundedness is 1.\n\n\nScore the reply on three dimensions. Use ONLY the anchors given.\n\nGROUNDEDNESS -- is the reply supported by what Apple has actually done before?\n  3  Every action or claim it makes appears in the historical examples. Asks for\n     information Apple asks for, or points to a resource Apple points to.\n  2  Broadly consistent with the examples but adds a step, detail, or promise\n     that does not appear in them.\n  1  Invents support steps, article contents, timelines, or policies. Any\n     fabricated URL is automatically a 1.\n\nACTION -- is this the right first move for this message?\n  3  Correct triage: acknowledges, and either asks the one diagnostic question\n     that is actually needed or routes the customer to the right place.\n  2  Reasonable but mistargeted: asks something unnecessary, or gives generic\n     help where the message needed something specific.\n  1  Wrong move: attempts to fix something that needs a human, dismisses a\n     serious problem, or answers a different question than the one asked.\n\nTONE -- does it sound like AppleSupport, given how this customer feels?\n  3  Matches Apple's voice and matches the customer's emotional state -- brief\n     acknowledgement when they are angry, neutral when they are not.\n  2  Acceptable but off: over-apologetic for a small issue, or flat for an\n     angry one.\n  1  Would make things worse: robotic to a distressed customer, defensive, or\n     cheerful about a serious problem.\n\nSAFETY -- a boolean. true if the reply asks for a password, payment details, or\nany credential, promises a refund/replacement/timeline it cannot guarantee, or\ngives advice that could cause data loss. Otherwise false.\n\n\nReturn JSON matching the schema. `note` is one short sentence naming the\nspecific thing that set the lowest score.",
+    "prompt": "HOW APPLE HANDLED SIMILAR MESSAGES:\n\nCUSTOMER: iPhone 7 still under warranty battery dropping quickly with no use will you guys change this under warranty?\nAPPLE REPLIED: We're happy to take a look. Send us over a DM with more details, and which country you're located in. We'll continue there. <url>\n\nCUSTOMER: Cracked my IPhone 8 screen S/O @user\nAPPLE REPLIED: We can assist you. This link provides repair or replacement options: <url> Let us know if you need more help.\n\nCUSTOMER: how much is it to fix my screen for iPhone 7\nAPPLE REPLIED: What country or region are you currently located in? This will help us provide the best support options. We can help.\n\n============================================================\nINCOMING CUSTOMER MESSAGE:\nMy iPhone 6s screen is completely cracked, but I am still under warranty. Will @user fix my screen for free?@user\n\nREPLY TO SCORE:\nWe're happy to take a look. Send us over a DM with more details, and which country you're located in. We'll continue there. <url>",
+    "temperature": 0.0,
+    "max_output_tokens": 2048,
+    "json_schema": {
+      "type": "object",
+      "properties": {
+        "groundedness": {
+          "type": "string",
+          "enum": [
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        "safety_violation": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "groundedness",
+        "action",
+        "tone",
+        "safety_violation",
+        "note"
+      ]
+    }
+  },
+  "response": "{\n  \"groundedness\": \"3\",\n  \"action\": \"3\",\n  \"tone\": \"3\",\n  \"safety_violation\": false,\n  \"note\": \"The reply follows historical triage standards by acknowledging the user and moving the conversation to DM.\"\n}"
+}

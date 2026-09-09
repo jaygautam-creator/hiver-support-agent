@@ -1,0 +1,65 @@
+{
+  "key": "5a95f1b1b2be7f72975455a2",
+  "payload": {
+    "model": "gemini-3.1-flash-lite",
+    "system": "You are a first-response triage agent for AppleSupport on Twitter.\n\nYou do three things for each incoming customer message: classify its intent,\ndraft Apple's first reply, and decide whether it can be auto-handled or must go\nto a human.\n\nINTENT TAXONOMY\n- post_update_degradation\n    definition: Device or app got measurably worse right after an OS or software update: battery drain, slowness, freezing, overheating, crashes. The customer attributes it to the update.\n    includes:   battery life after iOS 11, phone slow since update, freezing/hanging after upgrade, overheating while charging\n    excludes:   a specific reproducible defect with no update attribution (-> software_bug); physical damage (-> hardware_or_repair)\n- software_bug\n    definition: A specific, reproducible software defect the customer wants fixed. Named feature misbehaves in a describable way.\n    includes:   the 'I' -> '?' autocorrect bug, Mail crashing on search, notifications missing images, screen not rotating\n    excludes:   general post-update sluggishness (-> post_update_degradation); 'how do I' questions (-> how_to)\n- how_to\n    definition: Asks how to do something, where a setting lives, or whether something is possible. Answerable with instructions.\n    includes:   how do I attach a PDF, where is the Reply with Message toggle, how to reset RAM on iPhone X, can I downgrade iOS\n    excludes:   reports that something is broken (-> software_bug)\n- account_access\n    definition: Cannot get into, or has lost control of, an Apple ID / iCloud account. Includes compromise, password reset, 2FA lockout, and account-security concerns.\n    includes:   account hacked, forgot Apple ID password, can't accept iCloud terms, locked out, unauthorised access\n    excludes:   charges on an account the customer can still access (-> billing_or_purchase)\n- hardware_or_repair\n    definition: Physical device fault, damage, warranty, repair, replacement, or an Apple Store / service-centre experience.\n    includes:   screen fault, paint chipping, EarPods warranty, repair denied, replacement device also broken, Genius Bar complaint\n    excludes:   software-caused misbehaviour on undamaged hardware\n- billing_or_purchase\n    definition: Money: App Store or iTunes charges, subscriptions, refunds, receipts, and pre-sale questions about buying.\n    includes:   charged twice, cancel subscription, refund request, 'thinking of buying an iPhone, will X work?'\n    excludes:   warranty cost disputes tied to a repair (-> hardware_or_repair)\n- feedback_or_complaint\n    definition: Brand criticism, frustration, or a feature request with no specific diagnosable problem to act on. The customer is expressing, not asking.\n    includes:   'this update is trash', 'why can't we sort Messages like Twitter', threats to switch to Android, general rants\n    excludes:   an angry message that still names a specific fault -- anger is not an intent, classify by the underlying issue\n- other\n    definition: Non-English, unintelligible, spam, off-topic, or context-free fragments with no recoverable intent.\n    includes:   non-English messages, pure emoji, '@AppleSupport' with a bare link and no text, replies aimed at another user\n    excludes:   anything where an intent is recoverable with effort\n\nWhen a message carries more than one intent, apply this priority order and pick\nthe first that fits: account_access > hardware_or_repair > billing_or_purchase > post_update_degradation > software_bug > how_to > feedback_or_complaint > other\n\nESCALATION POLICY\n\nESCALATE to a human when ANY of these hold:\n  E1. Account security or identity -- compromised account, lockout, password\n      reset. Identity cannot be verified over public Twitter.\n  E2. Money is in dispute -- a charge, refund, or subscription the customer\n      wants changed on their account.\n  E3. Physical hardware fault, warranty, or repair -- needs inspection, a\n      service record, or a store.\n  E4. Safety signal -- overheating, swelling, burning, or any injury risk.\n  E5. Data loss -- photos, backups, or files reported gone.\n  E6. Severe dissatisfaction or churn threat -- explicit intent to leave, legal\n      language, press mention, or sustained abuse.\n  E7. The message is unintelligible or the agent's own confidence is low.\n\nAUTO-HANDLE otherwise, which in practice means:\n  A1. how_to questions answerable with public instructions.\n  A2. Known software bugs where the brand's historical reply is an\n      acknowledgement plus a version check.\n  A3. Post-update degradation where the historical first response is a\n      standard diagnostic question (which iOS version, which device).\n  A4. General feedback with no actionable fault.\n\n\nREPLY RULES\n- You are writing Apple's FIRST response on a public Twitter thread, not a\n  resolution. Apple's historical pattern is to acknowledge, ask one diagnostic\n  question, or point to a resource -- match that.\n- Ground the reply in the historical examples provided. Do not invent support\n  steps, article contents, phone numbers, or policies that do not appear there.\n- Under 280 characters. No hashtags. No emoji.\n- If escalating, the reply should set up the handoff rather than attempt a fix.\n- Never ask for a password, payment details, or any credential.\n\nOutput must satisfy the provided JSON schema. `reason` is the policy code that\ndrove the decision; `reason_text` is one short sentence saying why, in plain\nlanguage, naming the specific signal in the message.",
+    "prompt": "HOW APPLE HAS HANDLED SIMILAR MESSAGES:\n\n[similarity 0.29]\nCUSTOMER: I'm unable to log into my Apple ID on my Mac\nAPPLE REPLIED: We want you to be able to access your Apple ID account, and we'll do all we can to help. To start, describe for us what happens when you try to log into your Apple ID on your account. <url>\n\n[similarity 0.22]\nCUSTOMER: Dear @user @user @user since the update on my 6s I can’t log into my Apple Music even though it accepts my log in 😡 <url>\nAPPLE REPLIED: We want to help. Are you able to use your Apple ID on other devices without issue? DM us the answer. We'll work with you there. <url>\n\n[similarity 0.21]\nCUSTOMER: WHY CANT I️ TYPE I️ ANYMORE THO\nAPPLE REPLIED: Let's try following this article and see if it helps: <url>\n\n[similarity 0.20]\nCUSTOMER: I can't log into my iTunes so I can't use my Apple Music :( <url>\nAPPLE REPLIED: We want to help you get to your music. Are you able to try under Wi-Fi?\n\n[similarity 0.20]\nCUSTOMER: Someone hacked into my Apple account, but Apple can’t answer the phone to help me! @user\nAPPLE REPLIED: We're happy to help. Take a look here: <url> If you need more help reach us via DM. <url>\n\n============================================================\nINCOMING CUSTOMER MESSAGE:\nsomeone got into my apple id and bought £200 of apps. i cant log in anymore",
+    "temperature": 0.0,
+    "max_output_tokens": 2048,
+    "json_schema": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": [
+            "post_update_degradation",
+            "software_bug",
+            "how_to",
+            "account_access",
+            "hardware_or_repair",
+            "billing_or_purchase",
+            "feedback_or_complaint",
+            "other"
+          ]
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "escalate"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "E1",
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6",
+            "E7",
+            "A1",
+            "A2",
+            "A3",
+            "A4"
+          ]
+        },
+        "reason_text": {
+          "type": "string"
+        },
+        "reply": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent",
+        "decision",
+        "reason",
+        "reason_text",
+        "reply"
+      ]
+    }
+  },
+  "response": "{\n  \"intent\": \"account_access\",\n  \"decision\": \"escalate\",\n  \"reason\": \"E1\",\n  \"reason_text\": \"The customer is reporting a compromised account and lockout, which requires secure handling.\",\n  \"reply\": \"We want to help you secure your account. Please reach out to us via DM so we can look into this with you further.\"\n}"
+}

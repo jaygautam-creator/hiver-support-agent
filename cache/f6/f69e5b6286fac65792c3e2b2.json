@@ -1,0 +1,12 @@
+{
+  "key": "f69e5b6286fac65792c3e2b2",
+  "payload": {
+    "model": "gemini-3.8-flash",
+    "system": null,
+    "prompt": "Reply with the single word OK.",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "json_schema": null
+  },
+  "response": "OK"
+}

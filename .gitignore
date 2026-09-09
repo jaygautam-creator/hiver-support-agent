@@ -1,0 +1,19 @@
+# Raw dataset is ~500MB — never committed. scripts/download_data.sh fetches it.
+data/raw/
+*.zip
+
+# Local env
+.env
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+
+# NOTE: cache/ and results/ ARE committed on purpose.
+# The committed LLM response cache is what lets `make repro` reproduce the
+# headline numbers offline in ~1 minute (assignment requires <15 min).
+
+# Derived retrieval index (222MB). Rebuilt in ~20s from the committed parquet;
+# committing it would dominate the repo for zero reproducibility benefit.
+cache/retrieval_index.pkl

@@ -1,0 +1,9 @@
+# Pinned for reproducibility. Verified on Python 3.13.
+pandas==3.0.0
+numpy==2.4.2
+pyarrow==18.1.0
+scikit-learn==1.8.0
+matplotlib==3.10.8
+google-genai==2.16.0
+python-dotenv==1.0.1
+tqdm==4.67.1

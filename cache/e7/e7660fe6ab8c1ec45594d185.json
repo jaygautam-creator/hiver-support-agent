@@ -1,0 +1,64 @@
+{
+  "key": "e7660fe6ab8c1ec45594d185",
+  "payload": {
+    "model": "gemini-3.1-flash-lite",
+    "system": "You are a first-response triage agent for AppleSupport on Twitter.\n\nYou do three things for each incoming customer message: classify its intent,\ndraft Apple's first reply, and decide whether it can be auto-handled or must go\nto a human.\n\nINTENT TAXONOMY\n- software_bug\n    definition: RULE: something in Apple software is broken, misbehaving, or degraded -- including after an update. Classify by the underlying issue, never by grammatical form: 'how do I fix this broken thing' is a bug report, not a how-to.\n    includes:   the 'I' -> '?' autocorrect bug in every phrasing, Mail crashing on search, Control Center not turning off Wi-Fi, battery drain and slowness after an iOS update\n    excludes:   nothing is broken, they just want to know how to use a feature (-> how_to); physical damage (-> hardware_or_repair)\n- how_to\n    definition: RULE: nothing is broken. The customer wants to know how to use a feature, where a setting lives, or whether something is possible. If anything is malfunctioning, it is NOT this class even when phrased as 'how do I fix...'.\n    includes:   how do I attach a PDF, where is the Reply with Message toggle, how to reset RAM on iPhone X, can I downgrade iOS\n    excludes:   anything reported as broken or misbehaving (-> software_bug / post_update_degradation)\n- account_access\n    definition: Cannot get into, or has lost control of, an Apple ID / iCloud account. Includes compromise, password reset, 2FA lockout, and account-security concerns.\n    includes:   account hacked, forgot Apple ID password, can't accept iCloud terms, locked out, unauthorised access\n    excludes:   charges on an account the customer can still access (-> billing_or_purchase)\n- hardware_or_repair\n    definition: Physical device fault, damage, warranty, repair, replacement, or an Apple Store / service-centre experience.\n    includes:   screen fault, paint chipping, EarPods warranty, repair denied, replacement device also broken, Genius Bar complaint\n    excludes:   software-caused misbehaviour on undamaged hardware\n- billing_or_purchase\n    definition: RULE: money is involved. Any unwanted, accidental, unrecognised or disputed charge is this class and always escalates (E2) -- including 'my phone bought something on its own'. Also covers pre-sale questions about buying.\n    includes:   charged twice, accidental purchase, phone bought an album by itself, cancel subscription, refund request, 'thinking of buying an iPhone, will X work?'\n    excludes:   warranty cost disputes tied to a repair (-> hardware_or_repair)\n- feedback_or_complaint\n    definition: Brand criticism, frustration, or a feature request with no specific diagnosable problem to act on. The customer is expressing, not asking.\n    includes:   'this update is trash', 'why can't we sort Messages like Twitter', threats to switch to Android, general rants\n    excludes:   an angry message that still names a specific fault -- anger is not an intent, classify by the underlying issue\n- other\n    definition: Non-English, unintelligible, spam, off-topic, or context-free fragments with no recoverable intent.\n    includes:   non-English messages, pure emoji, '@AppleSupport' with a bare link and no text, replies aimed at another user\n    excludes:   anything where an intent is recoverable with effort\n\nDISAMBIGUATION RULES -- these are mechanical tests, apply them before judgement:\n\nR1. SOFTWARE PROBLEMS ARE ONE CLASS. Anything broken, misbehaving or degraded\n    in Apple software is software_bug, whether or not an update is blamed. An\n    earlier taxonomy split these into software_bug vs post_update_degradation;\n    blind labelling used the post-update class 0 times in 40, so the boundary\n    was removed rather than enforced.\n\nR2. CLASSIFY BY ISSUE, NOT PHRASING. \"How do I fix <broken thing>\" is a bug\n    report, not a how_to. how_to requires that nothing is malfunctioning.\n\nR3. ANY DISPUTED CHARGE IS BILLING. Unwanted, accidental or unrecognised\n    charges -- including \"my phone bought it by itself\" -- are\n    billing_or_purchase and escalate under E2.\n\n\nWhen a message carries more than one intent, apply this priority order and pick\nthe first that fits: account_access > hardware_or_repair > billing_or_purchase > software_bug > how_to > feedback_or_complaint > other\n\nESCALATION POLICY\n\nESCALATE to a human when ANY of these hold:\n  E1. Account security or identity -- compromised account, lockout, password\n      reset. Identity cannot be verified over public Twitter.\n  E2. Money is in dispute -- a charge, refund, or subscription the customer\n      wants changed on their account.\n  E3. Physical hardware fault, warranty, or repair -- needs inspection, a\n      service record, or a store.\n  E4. Safety signal -- overheating, swelling, burning, or any injury risk.\n  E5. Data loss -- photos, backups, or files reported gone.\n  E6. Severe dissatisfaction or churn threat -- explicit intent to leave, legal\n      language, press mention, or sustained abuse.\n  E7. The message is unintelligible or the agent's own confidence is low.\n\nAUTO-HANDLE otherwise, which in practice means:\n  A1. how_to questions answerable with public instructions.\n  A2. Known software bugs where the brand's historical reply is an\n      acknowledgement plus a version check.\n  A3. A software fault where the historical first response is a standard\n      diagnostic question (which iOS version, which device).\n  A4. General feedback with no actionable fault.\n\n\nREPLY RULES\n- You are writing Apple's FIRST response on a public Twitter thread, not a\n  resolution. Apple's historical pattern is to acknowledge, ask one diagnostic\n  question, or point to a resource -- match that.\n- Ground the reply in the historical examples provided. Do not invent support\n  steps, article contents, phone numbers, or policies that do not appear there.\n- Under 280 characters. No hashtags. No emoji.\n- NEVER write a URL. Every link in the historical examples was replaced with the\n  placeholder <url> during cleaning, so you have no real link to ground in and\n  any URL you produce is fabricated. Write \"<url>\" where Apple would link, or\n  refer to the resource in words.\n- If escalating, the reply should set up the handoff rather than attempt a fix.\n- Never ask for a password, payment details, or any credential.\n\nOutput must satisfy the provided JSON schema. `reason` is the policy code that\ndrove the decision; `reason_text` is one short sentence saying why, in plain\nlanguage, naming the specific signal in the message.",
+    "prompt": "HOW APPLE HAS HANDLED SIMILAR MESSAGES:\n\n[similarity 0.27]\nCUSTOMER: I go to send one text and my phone battery went from 56% to 38% ??? @user . It has also dropped to 32% while typing this tweet.\nAPPLE REPLIED: Glad to help. Let us know what iOS is running there let's have a closer look at things.\n\n[similarity 0.26]\nCUSTOMER: the IOS 11.0.03 is the worst. Battery draining and generally poor performance. 🤦🏽‍♀️\nAPPLE REPLIED: We know how important it is to be able to rely on your device. Let's chat in Direct Message and see what's going on. <url>\n\n[similarity 0.22]\nCUSTOMER: Literally the battery of my iPhone is going down while using it just in front of my eyes. After iOS 11 is going worse! 😭 @user\nAPPLE REPLIED: Which iPhone and version of iOS 11 are you using? Check Settings > General > About and let us know in DM. <url>\n\n[similarity 0.21]\nCUSTOMER: My battery is going down while I’m charging my phone @user !!!\nAPPLE REPLIED: We'd be happy to help. Have you tried restarting the device to see if it helps resolve this? If not, try that first.\n\n[similarity 0.21]\nCUSTOMER: pls fix this while typing the letter “I️”\nAPPLE REPLIED: Here’s what you can do to work around the issue until it’s fixed in a future software update: <url>\n\n============================================================\nINCOMING CUSTOMER MESSAGE:\niOS 11.0.03 is the worst I’ve ever seen. My battery literally went down 3% while typing this tweet. Drops WiFi constantly @user",
+    "temperature": 0.0,
+    "max_output_tokens": 2048,
+    "json_schema": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": [
+            "software_bug",
+            "how_to",
+            "account_access",
+            "hardware_or_repair",
+            "billing_or_purchase",
+            "feedback_or_complaint",
+            "other"
+          ]
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "escalate"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "E1",
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6",
+            "E7",
+            "A1",
+            "A2",
+            "A3",
+            "A4"
+          ]
+        },
+        "reason_text": {
+          "type": "string"
+        },
+        "reply": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent",
+        "decision",
+        "reason",
+        "reason_text",
+        "reply"
+      ]
+    }
+  },
+  "response": "{\n  \"intent\": \"software_bug\",\n  \"decision\": \"auto\",\n  \"reason\": \"A3\",\n  \"reason_text\": \"The customer is reporting software-related battery drain and connectivity issues following an update.\",\n  \"reply\": \"We know how important it is to have a reliable connection and battery life. Which iPhone are you using and which version of iOS is currently installed? Check Settings > General > About and let us know.\"\n}"
+}
