@@ -63,8 +63,12 @@ The test split is opened once, at the end.
 
 Three fields per example:
 
-1. **intent** - one of 8 classes defined in `src/taxonomy.py`, with inclusion
+1. **intent** - one of 7 classes defined in `src/taxonomy.py`, with inclusion
    and exclusion criteria and a stated priority order for multi-intent messages.
+   (This line read "8 classes" until 2026-09-10: a stale count left over from
+   before the pilot collapsed `post_update_degradation` into `software_bug`,
+   described below. Corrected rather than left standing, and flagged here
+   because the rest of this file is deliberately unrevised.)
 2. **decision** - `auto` or `escalate`.
 3. **reason** - a fixed policy code (E1-E7, A1-A4) from `ESCALATION_POLICY` in
    `src/taxonomy.py`, not free text. Free text drifts across 198 items; codes
@@ -119,3 +123,66 @@ Observed pilot cost: median 22.9s per item, 75th percentile 61s, max 4m38s
 ## Known limitations of this set
 
 <!-- Completed after labelling. -->
+
+---
+
+# Appendix: round 2 protocol (added 2026-09-10, after round 1)
+
+Everything above was written before any labelling. This appendix is appended,
+not merged into the body, so that claim stays literally true.
+
+## What round 1 left
+
+| | Items | Status |
+|---|---|---|
+| Blind control group | 40 | **Kept.** The golden set as it stands. |
+| Rule-seeded verification pass | 158 | **Discarded** (+62pp anchoring, `results/anchoring.md`). |
+
+40 is below the brief's 150-250. Round 2 relabels those 158 from scratch.
+
+## What changed in the tool before round 2 began
+
+Round 1's tool put two defects into the data. Both are fixed in
+`scripts/make_labeller.py`, and the fixes are enforced rather than intended:
+
+1. **Anchoring.** The "verify" mode is gone. `make label` now drops every
+   pair_id already present in `labelled.jsonl` and forces `mode="blind"` on
+   what remains, and the `pre_*` fields are **stripped before serialisation** —
+   the pre-labels are not hidden in the page, they are absent from it. Two
+   asserts in the generator fail the build if either invariant breaks.
+
+2. **Incomplete confirms.** Round 1's confirm button was not gated on
+   completeness, so three items (`39617_39616`, `431360_431359`,
+   `2332386_2332385`, all `intent: other`) entered the golden set with an
+   intent but no decision. They are still there, carried as intent-only rows by
+   `decision_complete` in `src/evaluate.py`. Confirm now refuses until intent,
+   decision and reason are all set, and names what is missing.
+
+A third change guards the browser rather than the code: the localStorage key
+moved `golden_labels_v2` -> `v3`, because round 1's seeded state is still in the
+browser and would otherwise be restored, pre-filled, on open.
+
+`tests/test_labeller.mjs` (`make test-labeller`) exercises the tool's state
+machine directly — a labelling tool is measurement apparatus, and a silent bug
+in it does not crash anything, it just quietly changes what the golden set
+means.
+
+## Round 2 procedure
+
+1. `make label` — regenerates the tool with the 158 unlabelled items, blind.
+2. Label them. Reveals stay permitted and recorded (`revealed_reply`).
+3. Export, then `make merge FILE=~/Downloads/labelled.jsonl` — validates the
+   export (taxonomy membership, decision/reason consistency, no collisions with
+   round 1, nothing seeded) and refuses to merge if anything is off.
+4. `make repro-live` — re-runs the agent over the new messages.
+5. `make repro` — confirms the committed cache reproduces the result offline.
+
+## What round 2 does not fix
+
+The 40 round-1 labels and the 158 round-2 labels come from **the same single
+annotator**, a day apart (2026-09-09 / 2026-09-10). There is still no second
+annotator, so inter-annotator agreement remains unmeasurable and the
+intra-annotator section above remains unfilled. The proximity cuts both ways:
+the taxonomy is fresh, but round 1's habits are also fresh, so the two halves
+are not independent. Any claim about label quality
+rests on the protocol, not on a measured agreement number.

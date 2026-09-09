@@ -1,0 +1,26 @@
+{
+  "_comment": "The 20 messages the LLM judge scores (x3 systems = 60 calls, the free-tier daily ceiling). Pinned rather than redrawn. These ids were drawn with np.random.default_rng(20260909) over the 40-item golden set of round 1; those 40 were themselves drawn uniformly at random from all 198 candidates (scripts/prelabel.py, frozen seed), so these 20 remain a uniform random subsample of the full golden set. Redrawing them when the set grew 40->198 would have invalidated all 60 cached judge calls (0/20 overlap) and bought no additional validity.",
+  "n_messages": 20,
+  "pair_ids": [
+    "1081525_1081524",
+    "1128253_1128252",
+    "1130507_1130505",
+    "1597680_1597679",
+    "1779942_1779941",
+    "1924755_1924752",
+    "2077143_2077141",
+    "2119362_2119360",
+    "2212895_2212894",
+    "2295702_2295700",
+    "2527063_2527062",
+    "2587912_2587911",
+    "2621280_2621279",
+    "2793198_2793197",
+    "2794378_2794377",
+    "2795916_2795915",
+    "39617_39616",
+    "922314_922312",
+    "935881_935880",
+    "962244_962243"
+  ]
+}

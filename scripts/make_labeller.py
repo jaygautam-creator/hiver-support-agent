@@ -10,9 +10,13 @@ Design choices that matter for the integrity of the golden set:
     Revealing is allowed but recorded per item, so its effect is auditable.
 
   * Escalation reasons are picked from the fixed policy codes in
-    src/taxonomy.py, not typed freehand. Free text drifts over 198 items; codes
+    src/taxonomy.py, not typed freehand. Free text drifts over 158 items; codes
     make the labels internally consistent and let the report say which policy
     clause drove each escalation.
+
+  * No item is ever pre-filled. Round 1 tried a rule-seeded "verify" mode and
+    measured a +62pp anchoring effect, so those labels were discarded and the
+    mode was removed from this tool. See the ROUND 2 note below.
 
   * Per-item labelling time is recorded. It is the cheapest available evidence
     that the set was labelled with attention rather than clicked through, and it
@@ -28,16 +32,51 @@ from src.taxonomy import DISAMBIGUATION_RULES, INTENTS
 
 ITEMS = [json.loads(l) for l in (GOLDEN / "to_label.jsonl").read_text().splitlines()]
 
-# Merge in the rule-based pre-labels and the blind/verify assignment.
+# ---------------------------------------------------------------------------
+# ROUND 2: BLIND-ONLY.
+#
+# Round 1 ran 40 items blind and 158 in "verify" mode, pre-filled by the weak
+# rule-based pre-labeller. The blind items were the control, and they fired:
+# the pre-labeller was 32% accurate but 95% of its labels were accepted, a
+# +62pp anchoring effect at identical labelling time (results/anchoring.md).
+# The 158 verified labels were discarded.
+#
+# So round 2 relabels those 158 from scratch, and this generator now makes it
+# structurally impossible to repeat the mistake:
+#
+#   * items already labelled in golden/labelled.jsonl are dropped entirely,
+#   * every remaining item is forced to mode="blind",
+#   * the pre_* fields are STRIPPED before serialisation, so no pre-label is
+#     present in the emitted HTML at all -- not hidden, absent. A pre-label
+#     that never reaches the DOM cannot anchor anyone.
+#
+# prelabels.jsonl is still read, but only for its mode assignment, which is
+# what identifies round 1's control group in the audit trail.
+# ---------------------------------------------------------------------------
 _pre = {json.loads(l)["pair_id"]: json.loads(l)
         for l in (GOLDEN / "prelabels.jsonl").read_text().splitlines()}
 for _it in ITEMS:
-    _it.update({k: v for k, v in _pre[_it["pair_id"]].items() if k != "pair_id"})
+    _it["round1_mode"] = _pre[_it["pair_id"]]["mode"]
 
-# BLIND ITEMS FIRST. If the 40 blind items came after 158 verifications, the
-# reviewer would already have absorbed the pre-labeller's habits and the
-# anchoring measurement would understate itself. Doing them cold is the point.
-ITEMS.sort(key=lambda d: (d["mode"] != "blind",))
+_done_path = GOLDEN / "labelled.jsonl"
+_done = set()
+if _done_path.exists():
+    _done = {json.loads(l)["pair_id"] for l in _done_path.read_text().splitlines()
+             if l.strip()}
+
+_PRE_FIELDS = ("pre_intent", "pre_decision", "pre_reason")
+ITEMS = [it for it in ITEMS if it["pair_id"] not in _done]
+for _it in ITEMS:
+    _it["mode"] = "blind"
+    for _f in _PRE_FIELDS:
+        _it.pop(_f, None)
+
+assert all(it["mode"] == "blind" for it in ITEMS), "round 2 must be blind-only"
+assert not any(k.startswith("pre_") for it in ITEMS for k in it), \
+    "pre-labels must not reach the HTML"
+
+print(f"  {len(_done)} already labelled, {len(ITEMS)} remaining (all blind)")
+
 OUT = GOLDEN / "label.html"
 
 ESC_CODES = {
@@ -92,7 +131,6 @@ font-size:14px}
 .mbadge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;
 padding:4px 9px;border-radius:5px;margin-top:12px}
 .mblind{background:#3b2f6b;color:#fff}
-.mverify{background:#e8dfc0;color:#6b5a1f}
 .rules{margin:12px 0;background:#fffdf5;border:1px solid #e8ddb5;border-radius:7px;padding:9px 12px}
 .rules summary{cursor:pointer;font-size:12px;font-weight:600;color:#7a6320}
 .rules pre{white-space:pre-wrap;font-size:12px;line-height:1.5;margin:8px 0 0;color:#4a4a44;
@@ -123,26 +161,25 @@ cursor:pointer}
 <button id="exp" class="exp">Export labelled.jsonl</button><span class="hint" id="stat"></span></div>
 </div><script>
 const ITEMS=__ITEMS__, INTENTS=__INTENTS__, ESC=__ESC__, AUTO=__AUTO__;
-const KEY='golden_labels_v2';
+// v3: round 1's state (including the 158 discarded rule-seeded labels)
+// still lives under golden_labels_v2 in this browser. A fresh key
+// guarantees round 2 starts from an empty store.
+const KEY='golden_labels_v3';
 let S=JSON.parse(localStorage.getItem(KEY)||'{}');
 let i=0, t0=Date.now();
 const $=id=>document.getElementById(id);
 function rec(){ const it=ITEMS[i], p=it.pair_id;
-  if(!S[p]){ S[p]={};
-    // Verify items arrive pre-filled from the weak rule-based pre-labeller.
-    // Blind items arrive empty on purpose.
-    if(it.mode==='verify'){S[p].intent=it.pre_intent;S[p].decision=it.pre_decision;
-      S[p].reason=it.pre_reason;S[p].seeded=true;}
-  }
+  // Every item is blind. Nothing is ever pre-filled: the record starts empty
+  // and only ever holds what the labeller actually chose.
+  if(!S[p]) S[p]={};
   return S[p]; }
 function render(){
   const it=ITEMS[i], r=rec();
   $('msg').textContent=it.customer_text;
   $('pos').textContent=`${i+1} / ${ITEMS.length}`;
   const done=Object.values(S).filter(x=>x.confirmed&&x.intent&&x.decision&&x.reason).length;
-  $('mode').innerHTML = it.mode==='blind'
-    ? '<span class="mbadge mblind">BLIND &middot; no pre-label &middot; label from scratch</span>'
-    : '<span class="mbadge mverify">VERIFY &middot; pre-filled by rules &middot; correct if wrong</span>';
+  $('mode').innerHTML =
+    '<span class="mbadge mblind">BLIND &middot; no pre-label &middot; label from scratch</span>';
   $('cnt').innerHTML=`<span class="${done===ITEMS.length?'done':''}">${done} labelled</span>`;
   $('strat').innerHTML=`<span class="tag">${it.slice}</span><span class="tag">${it.stratum}</span>`;
   $('spl').innerHTML=`<span class="tag">${it.split}</span>`;
@@ -160,12 +197,22 @@ function render(){
   if(r.revealed){$('reply').style.display='block';}
   t0=Date.now();
 }
-function set(k,v){const r=rec(); const it=ITEMS[i];
-  if(it.mode==='verify' && r['pre_'+k]!==undefined){}
+function set(k,v){const r=rec();
   if(v!==r[k]) r.changed=true;
   r[k]=v; if(k==='decision')r.reason=null;
   r.ms=(r.ms||0)+(Date.now()-t0); save(); render();}
-function confirm_(){const r=rec(); r.confirmed=true;
+function confirm_(){const r=rec();
+  // Round 1 did not gate this, and three items were confirmed with no decision
+  // -- they survive in the golden set as intent-only rows. Gate it: an item is
+  // confirmable only once intent, decision AND reason are all set.
+  if(!(r.intent&&r.decision&&r.reason)){
+    const need=[!r.intent&&'intent',!r.decision&&'decision',
+                !r.reason&&'reason'].filter(Boolean).join(' + ');
+    $('stat').textContent='incomplete -- still need '+need;
+    $('stat').style.color='#a5432f';
+    return;}
+  $('stat').style.color=''; $('stat').textContent='';
+  r.confirmed=true;
   r.ms=(r.ms||0)+(Date.now()-t0); save(); go(1);}
 function save(){localStorage.setItem(KEY,JSON.stringify(S));}
 function go(d){const r=rec(); r.ms=(r.ms||0)+(Date.now()-t0); save();
@@ -203,9 +250,8 @@ function exp(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download='labelled.jsonl'; a.click();
   const done=Object.values(S).filter(x=>x.confirmed&&x.intent&&x.decision&&x.reason).length;
-  $('mode').innerHTML = it.mode==='blind'
-    ? '<span class="mbadge mblind">BLIND &middot; no pre-label &middot; label from scratch</span>'
-    : '<span class="mbadge mverify">VERIFY &middot; pre-filled by rules &middot; correct if wrong</span>';
+  $('mode').innerHTML =
+    '<span class="mbadge mblind">BLIND &middot; no pre-label &middot; label from scratch</span>';
   $('stat').textContent=`exported ${done}/${ITEMS.length} complete`;
 }
 render();

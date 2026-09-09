@@ -68,9 +68,34 @@ truth, a human-anchored action check reusing the 40 hand-labelled decisions,
 test-retest stability, and a length-bias test. That is weaker evidence than a
 human study and is labelled as such throughout.
 
-Everything is in place to close both gaps — `golden/label.html` holds the
-remaining 158 items in blind mode (~30 min) and `golden/judge_validation.html`
-holds 42 replies to score (~12 min). Neither is a rebuild.
+**Status of the fix (2026-09-10).** Both gaps are tooled, neither is closed.
+
+Gap 1 is one labelling session away. `golden/label.html` now holds the 158
+unlabelled items **in blind mode** (~35 min). It did not before: as committed
+through 2026-09-09 those 158 were still in the rule-seeded `verify` mode — the
+exact condition measured at +62pp — so labelling them would have reproduced the
+discarded pass. The generator was rewritten to make that structurally
+impossible (pre-labels are stripped before serialisation, not hidden), the
+round-1 bug that let three items be confirmed without a decision was fixed, and
+the tool now has tests: `make test-labeller`. Details in
+`golden/LABELLING_NOTE.md` § *Appendix: round 2 protocol*.
+
+After labelling, `make merge FILE=...` validates and merges the export, and one
+`make repro-live` costs **158 agent calls** — the baselines never call an LLM,
+and the judge subsample is pinned (below), so nothing else re-bills.
+
+Gap 2 is unchanged: `golden/judge_validation.html` holds 42 replies to score
+(~12 min), then `make agreement`.
+
+**A note on the judge subsample.** The judge scores a fixed 20 messages x 3
+systems = 60 calls, the free-tier daily ceiling. Those 20 ids used to be drawn
+at random from whatever the golden set contained, which meant growing the set
+40 -> 198 would have redrawn them — sharing **0 of 20** ids with the cached set
+and burning all 60 calls to re-answer a question already settled. They are now
+pinned in `golden/judge_subsample.json`. They remain a uniform random subsample
+of the full 198: the 40 were themselves drawn uniformly at random from all 198
+candidates before any label existed (`scripts/prelabel.py`, frozen seed). The
+cost is that the judged subsample is 10% of the final set rather than 50%.
 
 ---
 
@@ -355,7 +380,11 @@ product is criticised but nothing is actually broken.
 | `src/judge.py` | Rubric, anchors, blind scoring |
 | `src/evaluate.py` | Harness: CV, bootstrap CIs, error dumps |
 | `src/cache.py` | Content-addressed LLM cache; `CACHE_OFFLINE=1` makes a miss fatal |
-| `golden/LABELLING_NOTE.md` | Sampling frame, scheme, protocol, limitations |
+| `scripts/make_labeller.py` | Builds `golden/label.html` — blind-only, pre-labels stripped before serialisation |
+| `scripts/merge_labels.py` | Validates a label export and merges it; refuses on any inconsistency |
+| `tests/test_labeller.mjs` | Tests the labelling tool's state machine (`make test-labeller`) |
+| `golden/judge_subsample.json` | The 20 pinned judge messages, and why they are pinned |
+| `golden/LABELLING_NOTE.md` | Sampling frame, scheme, protocol, limitations, round-2 appendix |
 | `DECISIONS.md` | Decision log |
 | `results/` | All committed outputs |
 

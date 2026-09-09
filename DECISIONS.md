@@ -93,3 +93,34 @@ items — worse on both ends — so the simple baseline is scored on out-of-fold
 predictions. Every headline number carries a percentile bootstrap 95% CI, because
 quoting a point estimate from 40 examples is the easiest way to mislead. Macro-F1
 covers only the 5 observed classes; the 2 absent ones are unmeasured, not zero.
+
+**16. The labelling tool is treated as measurement apparatus, and tested.**
+It has already corrupted the data twice: the rule-seeded `verify` mode cost 158
+labels to anchoring, and an ungated confirm button put three decision-less items
+into the golden set, where they remain. Neither failure crashed anything — that
+is the point. A bug in a labelling tool does not announce itself, it silently
+changes what the golden set *means*, and every downstream number inherits the
+damage without any visible symptom. So round 2's tool is blind by construction
+(pre-labels are stripped before serialisation, not merely hidden, with asserts
+enforcing it), confirm is gated on completeness, and `tests/test_labeller.mjs`
+exercises the state machine directly.
+
+**17. The label export is merged by a script that refuses, not by `cat`.**
+`scripts/merge_labels.py` checks taxonomy membership, decision/reason
+consistency, collisions with round 1, duplicates, unknown pair_ids, and the
+`was_seeded` flag, and merges nothing if any check fails. Appending 158 rows by
+hand is a one-line operation whose failure mode is a quietly malformed golden
+set — the most expensive possible bug here, because it would be invisible in
+every table it produced.
+
+**18. The judge's 20-message subsample is pinned, not redrawn.**
+It was selected by seeded RNG over the golden set's pair_ids, which is
+reproducible only while the set is a fixed size. Growing it 40 -> 198 would have
+redrawn all 20 ids — 0 overlap with the cached set — spending the entire
+free-tier daily judge quota to re-answer a question already settled: the judge is
+saturated (a constant canned reply scores 2.95 against the agent's 2.98), so a
+fresh sample buys no new information. The ids now live in
+`golden/judge_subsample.json`. They are still a uniform random subsample of the
+full 198, because the 40 were drawn uniformly at random from all 198 before any
+label existed. The honest cost — 10% of the set judged rather than 50% — is
+stated in the README rather than absorbed silently.

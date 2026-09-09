@@ -164,19 +164,38 @@ def judge_replies(preds: pd.DataFrame, workers: int = 3,
 
     from src.judge import score
 
-    # PAIRED SUBSAMPLE. Judging all 40 messages x 3 systems is 120 calls, which
-    # the free tier's daily quota will not deliver in one sitting. Judging a
-    # random subset of MESSAGES and scoring all three systems on each preserves
-    # the paired design -- every system is compared on identical inputs, which is
-    # what makes the comparison valid -- while halving the call count. Dropping
-    # whole systems, or sampling replies independently, would break the pairing.
+    # PAIRED SUBSAMPLE. Judging every message x 3 systems is beyond the free
+    # tier's daily quota. Judging a subset of MESSAGES and scoring all three
+    # systems on each preserves the paired design -- every system is compared on
+    # identical inputs, which is what makes the comparison valid -- while cutting
+    # the call count. Dropping whole systems, or sampling replies independently,
+    # would break the pairing.
+    #
+    # PINNED, NOT REDRAWN. The ids live in golden/judge_subsample.json. They were
+    # drawn at random, but they are now fixed: when the golden set grew 40 -> 198
+    # a redraw shared 0 of 20 ids with the cached set, which would have burned
+    # all 60 judge calls to re-answer a question already settled (the judge is
+    # saturated; see results/judge_validation.md) . The pinned ids are still a
+    # uniform random subsample of the full set -- see that file's _comment.
     ids = sorted(preds["pair_id"].unique())
-    if n_messages < len(ids):
+    pin_path = GOLDEN / "judge_subsample.json"
+    keep = None
+    if pin_path.exists():
+        pinned = set(json.loads(pin_path.read_text())["pair_ids"])
+        keep = pinned & set(ids)
+        missing = pinned - set(ids)
+        if missing:
+            print(f"  WARNING: {len(missing)} pinned judge ids absent from the "
+                  f"golden set; judging {len(keep)} messages")
+    if keep is None and n_messages < len(ids):
         rng = np.random.default_rng(20260909)
         keep = set(rng.choice(ids, size=n_messages, replace=False))
+
+    if keep is not None:
         judged = preds[preds["pair_id"].isin(keep)].copy()
-        print(f"  judging a paired subsample: {n_messages} messages x 3 systems "
-              f"= {len(judged)} calls (free-tier daily quota)")
+        print(f"  judging a pinned paired subsample: {len(keep)} of {len(ids)} "
+              f"messages x 3 systems = {len(judged)} calls "
+              f"(free-tier daily quota)")
     else:
         judged = preds.copy()
 

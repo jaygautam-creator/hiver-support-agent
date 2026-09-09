@@ -1,5 +1,5 @@
 .PHONY: help setup data survey subsample taxonomy prelabel label judge-tool \
-        repro repro-live anchoring agreement clean
+        merge test-labeller repro repro-live anchoring agreement clean
 
 help:
 	@echo "REPRODUCE"
@@ -13,8 +13,10 @@ help:
 	@echo "REBUILD FROM RAW (optional; subsample is committed)"
 	@echo "  make setup / data / survey / subsample / taxonomy"
 	@echo ""
-	@echo "LABELLING TOOLS"
-	@echo "  make label         regenerate golden/label.html"
+	@echo "LABELLING (round 2: the remaining 158, blind)"
+	@echo "  make label         regenerate golden/label.html (blind, unlabelled only)"
+	@echo "  make merge FILE=~/Downloads/labelled.jsonl   validate + merge an export"
+	@echo "  make test-labeller check the labelling tool's own state machine"
 	@echo "  make judge-tool    regenerate golden/judge_validation.html"
 
 setup:
@@ -36,8 +38,19 @@ taxonomy:
 prelabel:
 	python3 -m scripts.prelabel
 
-label: prelabel
+# NOTE: no longer depends on `prelabel`. Round 2 is blind-only, so the tool is
+# built without pre-labels at all; regenerating them is not part of the path.
+label:
 	python3 -m scripts.make_labeller
+
+merge:
+ifndef FILE
+	$(error usage: make merge FILE=~/Downloads/labelled.jsonl)
+endif
+	python3 -m scripts.merge_labels $(FILE)
+
+test-labeller:
+	node tests/test_labeller.mjs
 
 judge-tool:
 	python3 -m scripts.make_judge_validator
