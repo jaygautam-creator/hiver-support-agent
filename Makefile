@@ -1,6 +1,6 @@
 .PHONY: help setup data survey subsample taxonomy sample prelabel label judge-tool \
         merge test test-labeller test-judge-validator repro repro-live anchoring agreement \
-        second-annotator validate-judge ablate clean
+        second-annotator validate-judge ablate operating-point clean
 
 help:
 	@echo "REPRODUCE"
@@ -14,6 +14,7 @@ help:
 	@echo "                     measuring how unambiguous the taxonomy is"
 	@echo "  make validate-judge    4 automated judge checks -> results/judge_validation.md"
 	@echo "  make ablate            k=0 retrieval ablation -> results/ablation_retrieval.md"
+	@echo "  make operating-point   expected cost vs cost ratio -> results/operating_point.md"
 	@echo ""
 	@echo "REBUILD FROM RAW (optional; subsample is committed)"
 	@echo "  make setup / data / survey / subsample / taxonomy / sample"
@@ -90,6 +91,11 @@ validate-judge:
 # the script's docstring before the run; all three of them failed.
 ablate:
 	python3 -m scripts.ablate_retrieval
+
+# No LLM calls: reads the committed predictions and turns them into the cost
+# question a support team actually asks.
+operating-point:
+	python3 -m scripts.operating_point
 
 anchoring:
 	python3 -m scripts.measure_anchoring

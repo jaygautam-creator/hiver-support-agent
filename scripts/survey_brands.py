@@ -16,11 +16,13 @@ from pathlib import Path
 
 import pandas as pd
 
-RAW = Path("data/raw/twcs/twcs.csv")
+from src.config import DATA, RAW_CSV, RESULTS
+
+RAW = RAW_CSV
 if not RAW.exists():
-    alt = Path("data/raw/twcs.csv")
+    alt = DATA / "raw" / "twcs.csv"
     RAW = alt if alt.exists() else RAW
-OUT = Path("results/brand_survey.md")
+OUT = RESULTS / "brand_survey.md"
 CHUNK = 250_000
 
 def main():

@@ -240,3 +240,29 @@ Switching architecture to whatever scores best on 40 already-inspected examples
 is the same error this report spends a section warning about. The decision is
 deferred to the finished 150-item set, and what would justify it is written down
 in `results/ablation_retrieval.md`.
+
+**27. The escalation metrics were turned into a cost, because precision and
+recall do not answer "should we deploy this".** The report had asserted an
+asymmetry -- a miss costs a customer, a false escalation costs two agent-minutes
+-- and then never used it. `scripts/operating_point.py` expresses expected cost
+per 1,000 inbound messages as a function of R = (cost of a miss) / (cost of a
+false escalation), so the deployment decision becomes explicit about the one
+input the evaluation cannot supply. Prevalence is taken from the **natural
+slice** (21%), not the pooled golden set (30%): the targeted slice over-samples
+escalation-flavoured messages by design, and using the pooled figure would have
+inflated every row by ~40% while looking like a deployment estimate.
+
+The durable result is that the agent beats deploying no triage at every R
+tested, with the margin widening as misses get more expensive -- which is the
+regime a support organisation is actually in, and it is a case for the system
+that does not depend on the reply quality the judge cannot measure. The k=0 row
+dominating at every R is *not* a result: it rests on one message out of five gold
+escalations in that slice, and the write-up says so.
+
+**28. Every filesystem path was anchored to the repo root.** Seven constants
+across five files were relative (`Path("results/...")`, `Path("data/raw/...")`),
+so any of those scripts run from another directory would write to the wrong place
+or fail. `src/retrieve.py` was the dangerous one: `Path("cache/retrieval_index.pkl")`
+would silently build a fresh 232MB index into the caller's cwd -- minutes of work,
+no error, and a second copy of a file that is deliberately gitignored. `src/config.py`
+already exported ROOT/DATA/RESULTS/CACHE for exactly this; they are now used.

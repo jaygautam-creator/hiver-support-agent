@@ -30,9 +30,12 @@ from scipy.sparse import hstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
 
-from src.config import GOLDEN, SUBSAMPLE
+from src.config import CACHE, GOLDEN, SUBSAMPLE
 
-INDEX = Path("cache/retrieval_index.pkl")
+# Anchored to the repo root via src.config, not to the caller's cwd. As a
+# relative path this silently rebuilt a fresh 232MB index into whatever
+# directory the command happened to run from -- minutes of work, no error.
+INDEX = CACHE / "retrieval_index.pkl"
 
 
 @dataclass

@@ -250,6 +250,48 @@ that is right twice as often. Whether that trade is correct is a business call
 about the cost ratio, not something this evaluation can settle — and with a
 recall CI of [0.45, 1.00] at n=11, it cannot settle it either way.
 
+### What should we actually deploy? (cost of an operating point)
+
+`results/operating_point.md`, `make operating-point`. This report asserts that
+escalation costs are asymmetric and then never uses the asymmetry — precision and
+recall get reported as though they were the answer. They are not. They are inputs
+to a cost question whose other input is a business number this repo does not
+contain.
+
+Let **R** = (cost of a missed escalation) ÷ (cost of a false escalation).
+Expected cost per 1,000 inbound messages at the **natural-slice** escalation
+prevalence of 21%, in units of one false escalation (≈ two agent-minutes):
+
+| System | R=1 | R=5 | R=20 | R=100 |
+|---|---|---|---|---|
+| **agent (shipped, k=5)** | 125 | 292 | 917 | 4,250 |
+| trivial / simple (escalate nothing) | 208 | 1,042 | 4,167 | 20,833 |
+| agent (k=0, not shipped) | 83 | 83 | 83 | 83 |
+
+**Prevalence comes from the natural slice, not the pooled set.** The pooled
+golden set reads 30% because the targeted slice over-samples
+escalation-flavoured messages by design; using it would inflate every row here
+while looking like a deployment estimate.
+
+**The result that holds: the agent beats deploying no triage at every R tested**,
+and the margin widens as misses get more expensive — which is the regime a
+support organisation is actually in. That is the case for the system, stated in
+the units a support team budgets in, and it does not depend on the reply quality
+the judge cannot measure.
+
+**The result that does not hold, and why it is here anyway.** The k=0 ablation
+dominates at every R with no crossover — same false escalations, one fewer
+miss — so its cost never grows with R. **That flat row rests on a single
+message.** The natural slice contains 5 gold escalations; k=5 misses one and k=0
+misses none. A crossover would have been the more useful outcome, because it
+would have turned "is retrieval worth keeping" into a business question with a
+real answer. Instead there is a hint at n=24 and nothing to act on.
+
+The missing input is R itself. For a support channel it comes from the value of a
+retained customer against a loaded agent-minute — a number a support
+organisation already has. It belongs in config, not in a model, and this repo
+should have asked for it rather than assuming an asymmetry it never quantified.
+
 ### Does retrieval actually do anything? (ablation)
 
 The brief asks for replies "grounded in how that brand has historically resolved
@@ -708,6 +750,7 @@ model changed.
 | `scripts/build_golden_sample.py` | Draws the 198-item sampling frame, natural + targeted strata (`make sample`) |
 | `scripts/validate_judge.py` | The four automated judge checks (`make validate-judge`) |
 | `scripts/ablate_retrieval.py` | k=0 ablation: does the retrieval component earn its place? (`make ablate`) |
+| `scripts/operating_point.py` | Turns precision/recall into expected cost per 1,000 messages (`make operating-point`) |
 | `tests/test_judge_validator.mjs` | Tests the reply-scoring tool, incl. a regression for the wrong-field write |
 | `golden/judge_subsample.json` | The 20 pinned judge messages, and why they are pinned |
 | `golden/LABELLING_NOTE.md` | Sampling frame, scheme, protocol, limitations, round-2 appendix |

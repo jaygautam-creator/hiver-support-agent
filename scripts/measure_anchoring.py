@@ -22,13 +22,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import GOLDEN
+from src.config import GOLDEN, RESULTS
 
 # Reads the DISCARDED verification pass, not the final golden set. Those 158
 # labels were thrown away precisely because of what this script measures; the
 # file is retained as the evidence for that decision.
 LABELLED = GOLDEN / "verification_pass_discarded.jsonl"
-OUT = Path("results/anchoring.md")
+OUT = RESULTS / "anchoring.md"
 
 
 def main() -> None:

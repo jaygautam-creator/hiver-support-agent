@@ -19,9 +19,9 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from src.config import SEED, SUBSAMPLE
+from src.config import RESULTS, SEED, SUBSAMPLE
 
-OUT = Path("results/taxonomy_derivation.md")
+OUT = RESULTS / "taxonomy_derivation.md"
 
 
 def main() -> None:

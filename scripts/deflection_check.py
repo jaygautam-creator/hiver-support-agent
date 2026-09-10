@@ -18,8 +18,10 @@ from pathlib import Path
 
 import pandas as pd
 
-RAW = Path("data/raw/twcs/twcs.csv")
-OUT = Path("results/brand_deflection.md")
+from src.config import DATA, RAW_CSV, RESULTS
+
+RAW = RAW_CSV
+OUT = RESULTS / "brand_deflection.md"
 CHUNK = 300_000
 
 CANDIDATES = ["AmazonHelp", "AppleSupport", "Uber_Support", "AmericanAir",
