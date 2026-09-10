@@ -139,7 +139,7 @@ with the agent.
 annotator is what exposed it.** Intent reaches kappa 0.47; escalate/auto reaches
 **0.08**, which is chance. The disagreement is one-directional: 22 items the
 human called `auto` the annotator called `escalate`, against 1 the other way, and
-escalation rates run 28% (human) / 42% (agent) / 82% (annotator). The cause is in
+escalation rates run 28% (human) / 43% (agent) / 82% (annotator). The cause is in
 the codebook: E7 ends "or the agent's own confidence is low" and E6 covers
 "severe dissatisfaction ... or sustained abuse" on a corpus of angry, profane
 tweets, while the auto side has no positive criteria at all — it is "AUTO-HANDLE
@@ -161,3 +161,57 @@ before being diagnosed, and it sits on the same path as the 158-call
 against seven cases including that `400 INVALID_ARGUMENT` and `403
 PERMISSION_DENIED` still fail fast — retrying a real bug eight times wastes quota
 and hides the cause.
+
+**22. The escalation codebook was rewritten (v2) after a second annotator
+measured v1 at chance.** v1 read as seven ways to escalate and no positive way
+to stay: `E7` ended "...or the agent's own confidence is low", so a careful
+reader reached for it whenever unsure; `E6` fired on "severe dissatisfaction or
+sustained abuse" across a corpus of angry profane tweets; and the auto side had
+no criteria at all, just "AUTO-HANDLE otherwise". An independent annotator
+reading that text agreed with the human at kappa **0.08** and escalated 82% of
+messages against the human's 28% — and 19 of the 24 disagreements were E6 or E7
+alone, codes the human used **zero** times in 40 items. v2 deletes E7, gives E6
+a mechanical test (a named outside party: lawyer, regulator, press, chargeback —
+never tone or profanity), gives every auto case a positive code including a new
+`A5` for messages with no recoverable request, and states an application order
+with no "unsure" branch. Every code the human actually used (A2, A4, E1, E2, E3)
+keeps its exact meaning, which is why there is a gap at A3 instead of a tidy
+renumber: round-1 and round-2 labels stay comparable. The rewrite happened
+*before* the remaining labels were collected, not after — relabelling against a
+policy two readers apply differently just manufactures more ambiguity.
+Proposal and evidence: `golden/CODEBOOK_V2_PROPOSAL.md`.
+
+**23. The code lists were consolidated into one place because they had already
+drifted four ways.** `E1..E7 / A1..A4` was typed out by hand in the agent's
+response schema, the labelling UI, the second annotator, and the merge
+validator. Retiring two codes in `src/taxonomy.py` would have left the agent
+still able to emit them and the merge validator still willing to accept them.
+All four now import `REASON_CODES` from the taxonomy, and
+`scripts/make_labeller.py` asserts its UI codes match exactly — a labelling tool
+offering a code the agent cannot produce silently corrupts the comparison it
+exists to measure.
+
+**24. A date was being sorted as a string, and the fix was kept even though it
+moved almost nothing.** `src/data.py` claimed to keep the *first* brand reply
+per customer message, and implemented it as
+`sort_values("created_at_reply")` — where `created_at` is the raw Twitter string
+`"Mon Oct 30 15:14:01 +0000 2017"`. Sorted as text, that orders by weekday name,
+then month name. Measured blast radius: 23 of 106,623 customer messages have
+more than one brand reply, and parsing the timestamp properly changes 81 of
+102,086 final pairs (0.08%), **none of them in the golden set**. Fixed anyway,
+with an assertion that every timestamp parses: the docstring asserted a property
+the code did not have, and that is the kind of defect that is silently wrong
+again at a larger scale later.
+
+**25. The codebook rewrite was pre-registered and then measured, not just
+asserted.** Before touching `src/taxonomy.py`, the expected result was written
+down in `golden/CODEBOOK_V2_PROPOSAL.md` § 2: reassigning every E6/E7 escalation
+to auto on the existing 40 items projects kappa **0.76**, so the prediction on
+record was 0.7-0.8. The same annotator model was then re-run on the same 40 items
+under v2 and returned **0.77** (agreement 41% -> 90%). The intent definitions,
+which were *not* changed, act as the control: their kappa moved 0.47 -> 0.43, so
+about +/-0.04 is this measurement's own noise and the escalation move of +0.69 is
+far outside it. Writing the prediction down first is what makes the second number
+evidence rather than a story told afterwards -- and if it had come back at 0.3,
+that would have been the finding, and 158 items would not have been labelled
+under v2.

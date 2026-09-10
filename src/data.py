@@ -111,9 +111,21 @@ def build_pairs(brand_df: pd.DataFrame, parent_df: pd.DataFrame, brand: str) -> 
         suffixes=("_reply", "_cust"),
     )
 
-    merged = merged.sort_values("created_at_reply").drop_duplicates(
-        subset=["tweet_id_cust"], keep="first"
-    )
+    # created_at arrives as the raw Twitter string ("Mon Oct 30 15:14:01 +0000
+    # 2017"). Sorting that as text orders by WEEKDAY NAME first, then month
+    # name -- so "keep the first reply" was keeping whichever reply happened to
+    # fall on a Friday. Parse to a real timestamp before sorting.
+    # Blast radius when this was found: 23 of 106,623 customer messages have
+    # more than one brand reply, and the fix changes the chosen reply for 1 of
+    # them. Small, but the docstring above claims a property the code did not
+    # have, and that is the kind of thing that is wrong again at a larger scale
+    # later.
+    merged["_reply_at"] = pd.to_datetime(
+        merged["created_at_reply"], format="%a %b %d %H:%M:%S %z %Y", errors="coerce")
+    assert merged["_reply_at"].notna().all(), "unparseable created_at timestamp"
+    merged = (merged.sort_values("_reply_at")
+                    .drop_duplicates(subset=["tweet_id_cust"], keep="first")
+                    .drop(columns=["_reply_at"]))
 
     out = pd.DataFrame({
         "pair_id": merged["tweet_id_cust"].astype(str) + "_" + merged["tweet_id_reply"].astype(str),

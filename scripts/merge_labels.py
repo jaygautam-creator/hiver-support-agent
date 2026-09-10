@@ -28,10 +28,13 @@ import sys
 from pathlib import Path
 
 from src.config import GOLDEN
-from src.taxonomy import INTENTS
+from src.taxonomy import AUTO_CODES as _AUTO, ESCALATE_CODES as _ESC, INTENTS
 
-ESC_CODES = {"E1", "E2", "E3", "E4", "E5", "E6", "E7"}
-AUTO_CODES = {"A1", "A2", "A3", "A4"}
+# Imported, never re-typed. These were literal sets containing E7 and A3, which
+# codebook v2 retired -- so this validator would have accepted a code the agent
+# can no longer emit and the labelling UI no longer offers.
+ESC_CODES = set(_ESC)
+AUTO_CODES = set(_AUTO)
 LABELLED = GOLDEN / "labelled.jsonl"
 
 

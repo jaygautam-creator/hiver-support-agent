@@ -1,6 +1,6 @@
-.PHONY: help setup data survey subsample taxonomy prelabel label judge-tool \
+.PHONY: help setup data survey subsample taxonomy sample prelabel label judge-tool \
         merge test test-labeller test-judge-validator repro repro-live anchoring agreement \
-        second-annotator clean
+        second-annotator validate-judge clean
 
 help:
 	@echo "REPRODUCE"
@@ -12,9 +12,10 @@ help:
 	@echo "  make agreement     LLM judge vs human -> results/judge_agreement.md"
 	@echo "  make second-annotator  independent model relabels the golden set,"
 	@echo "                     measuring how unambiguous the taxonomy is"
+	@echo "  make validate-judge    4 automated judge checks -> results/judge_validation.md"
 	@echo ""
 	@echo "REBUILD FROM RAW (optional; subsample is committed)"
-	@echo "  make setup / data / survey / subsample / taxonomy"
+	@echo "  make setup / data / survey / subsample / taxonomy / sample"
 	@echo ""
 	@echo "LABELLING (round 2: the remaining 158, blind)"
 	@echo "  make label         regenerate golden/label.html (blind, unlabelled only)"
@@ -37,6 +38,12 @@ subsample:
 
 taxonomy:
 	python3 -m scripts.derive_taxonomy
+
+# Draws the 198-item golden sampling frame (natural + targeted strata).
+# Seeded, so it reproduces exactly -- but re-running it after labelling has
+# started would strand the existing labels, so it is not on any default path.
+sample:
+	python3 -m scripts.build_golden_sample
 
 prelabel:
 	python3 -m scripts.prelabel
@@ -72,6 +79,11 @@ repro:
 
 repro-live:
 	python3 -m src.evaluate
+
+# The four automated checks that stand in for the missing human judge study.
+# ~32 judge calls, so it is deliberately not part of `make repro`.
+validate-judge:
+	python3 -m scripts.validate_judge
 
 anchoring:
 	python3 -m scripts.measure_anchoring

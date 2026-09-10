@@ -11,7 +11,7 @@ Classes with zero gold examples (billing_or_purchase, how_to) are **unmeasured**
 
 | system   |   n |   accuracy | acc_95CI     |   macro_f1 | f1_95CI      |   classes_measured |
 |:---------|----:|-----------:|:-------------|-----------:|:-------------|-------------------:|
-| agent    |  40 |      0.625 | [0.47, 0.78] |      0.555 | [0.35, 0.68] |                  5 |
+| agent    |  40 |      0.6   | [0.45, 0.75] |      0.53  | [0.34, 0.66] |                  5 |
 | simple   |  40 |      0.5   | [0.35, 0.65] |      0.236 | [0.12, 0.35] |                  5 |
 | trivial  |  40 |      0.475 | [0.33, 0.62] |      0.129 | [0.10, 0.15] |                  5 |
 
@@ -29,7 +29,7 @@ Classes with zero gold examples (billing_or_purchase, how_to) are **unmeasured**
 
 | system   |   n |   accuracy | acc_95CI     |   macro_f1 | f1_95CI      |   classes_measured |
 |:---------|----:|-----------:|:-------------|-----------:|:-------------|-------------------:|
-| agent    |  16 |      0.5   | [0.25, 0.75] |      0.476 | [0.20, 0.66] |                  5 |
+| agent    |  16 |      0.438 | [0.19, 0.69] |      0.428 | [0.17, 0.61] |                  5 |
 | simple   |  16 |      0.312 | [0.06, 0.56] |      0.275 | [0.05, 0.43] |                  5 |
 | trivial  |  16 |      0.188 | [0.00, 0.38] |      0.063 | [0.00, 0.11] |                  5 |
 
@@ -38,17 +38,17 @@ Classes with zero gold examples (billing_or_purchase, how_to) are **unmeasured**
 
 | system   |   escalate_precision |   escalate_recall | recall_95CI   |   escalate_f1 |   missed_escalations |   n_gold_escalate |   reason_code_acc |
 |:---------|---------------------:|------------------:|:--------------|--------------:|---------------------:|------------------:|------------------:|
-| agent    |                0.625 |             0.909 | [0.73, 1.00]  |         0.741 |                    1 |                11 |             0.27  |
-| simple   |                0     |             0     | [0.00, 0.00]  |         0     |                   11 |                11 |             0     |
-| trivial  |                0     |             0     | [0.00, 0.00]  |         0     |                   11 |                11 |             0.135 |
+| agent    |                  0.8 |             0.727 | [0.45, 1.00]  |         0.762 |                    3 |                11 |             0.595 |
+| simple   |                  0   |             0     | [0.00, 0.00]  |         0     |                   11 |                11 |             0     |
+| trivial  |                  0   |             0     | [0.00, 0.00]  |         0     |                   11 |                11 |             0.135 |
 
 
 ## Reply quality
 
 | system   |   n_judged |   groundedness |   action |   tone |   judge_mean |   safety_violations |   fabricated_url_% |
 |:---------|-----------:|---------------:|---------:|-------:|-------------:|--------------------:|-------------------:|
-| agent    |         20 |           2.95 |     3    |   3    |         2.98 |                   0 |                  0 |
 | trivial  |         20 |           2.95 |     2.95 |   2.95 |         2.95 |                   0 |                  0 |
+| agent    |         20 |           2.75 |     2.9  |   2.75 |         2.8  |                   0 |                  0 |
 | simple   |         20 |           2.65 |     2.5  |   2.7  |         2.62 |                   0 |                  0 |
 
 
@@ -56,7 +56,7 @@ Classes with zero gold examples (billing_or_purchase, how_to) are **unmeasured**
 
 |                       |   software_bug |   how_to |   account_access |   hardware_or_repair |   billing_or_purchase |   feedback_or_complaint |   other |
 |:----------------------|---------------:|---------:|-----------------:|---------------------:|----------------------:|------------------------:|--------:|
-| software_bug          |             16 |        1 |                0 |                    2 |                     0 |                       0 |       0 |
+| software_bug          |             15 |        1 |                0 |                    2 |                     0 |                       0 |       1 |
 | how_to                |              0 |        0 |                0 |                    0 |                     0 |                       0 |       0 |
 | account_access        |              1 |        1 |                4 |                    0 |                     1 |                       0 |       0 |
 | hardware_or_repair    |              1 |        0 |                0 |                    3 |                     0 |                       1 |       0 |
@@ -75,11 +75,11 @@ Classes with zero gold examples (billing_or_purchase, how_to) are **unmeasured**
 feedback_or_complaint       0.00      0.00      0.00         5
    hardware_or_repair       0.60      0.60      0.60         5
                how_to       0.00      0.00      0.00         0
-                other       1.00      0.50      0.67         4
-         software_bug       0.73      0.84      0.78        19
+                other       0.67      0.50      0.57         4
+         software_bug       0.71      0.79      0.75        19
 
-             accuracy                           0.62        40
-            macro avg       0.48      0.36      0.40        40
-         weighted avg       0.70      0.62      0.64        40
+             accuracy                           0.60        40
+            macro avg       0.43      0.35      0.38        40
+         weighted avg       0.66      0.60      0.62        40
 
 ```

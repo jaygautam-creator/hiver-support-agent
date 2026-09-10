@@ -47,6 +47,22 @@ PER_STRATUM = N_TARGETED // len(SEEDS)
 
 
 def main() -> None:
+    # REFUSE if labels already exist. This script draws a fresh frame from
+    # data/brand_subsample.parquet; if that parquet has changed at all since the
+    # frame was first drawn, the new draw contains different pair_ids and every
+    # existing label is orphaned -- silently, because the labels file is never
+    # touched. That is a whole-golden-set loss with no error message, so it is
+    # a hard stop rather than a comment.
+    labelled = GOLDEN / "labelled.jsonl"
+    if labelled.exists() and labelled.read_text().strip():
+        n = len([l for l in labelled.read_text().splitlines() if l.strip()])
+        raise SystemExit(
+            f"REFUSING: {labelled} already holds {n} labels drawn against the "
+            f"current frame in {OUT.name}.\n"
+            f"Re-drawing would orphan every one of them. If you really mean to "
+            f"start the golden set over, move both files aside first."
+        )
+
     df = pd.read_parquet(SUBSAMPLE)
     df = df[df["is_opener"]].reset_index(drop=True)
     print(f"frame: {len(df):,} conversation openers")

@@ -28,7 +28,8 @@ import json
 from pathlib import Path
 
 from src.config import GOLDEN
-from src.taxonomy import DISAMBIGUATION_RULES, INTENTS
+from src.taxonomy import (AUTO_CODES as TAXONOMY_AUTO_CODES,
+                          DISAMBIGUATION_RULES, ESCALATE_CODES, INTENTS)
 
 ITEMS = [json.loads(l) for l in (GOLDEN / "to_label.jsonl").read_text().splitlines()]
 
@@ -79,21 +80,25 @@ print(f"  {len(_done)} already labelled, {len(ITEMS)} remaining (all blind)")
 
 OUT = GOLDEN / "label.html"
 
+# Codebook v2. The keys must match src.taxonomy.REASON_CODES exactly -- the
+# assertion below enforces it, because a labelling UI offering a code the agent
+# cannot emit (or missing one it can) silently corrupts the comparison.
 ESC_CODES = {
     "E1": "Account security / identity",
     "E2": "Money in dispute",
     "E3": "Hardware fault / warranty / repair",
     "E4": "Safety signal (heat, swelling, injury)",
-    "E5": "Data loss",
-    "E6": "Churn threat / legal / press / abuse",
-    "E7": "Unintelligible or low confidence",
+    "E5": "Data loss -- gone, not just not loading",
+    "E6": "Named outside party: lawyer / regulator / press / chargeback",
 }
 AUTO_CODES = {
-    "A1": "Answerable how-to",
-    "A2": "Known bug -> acknowledge + version check",
-    "A3": "Post-update -> standard diagnostic",
-    "A4": "General feedback, no actionable fault",
+    "A1": "Answerable question, nothing broken",
+    "A2": "Software fault -> acknowledge + version check",
+    "A4": "Feedback, no diagnosable fault (anger alone lives here)",
+    "A5": "No recoverable request -> one clarifying question",
 }
+assert sorted(ESC_CODES) + sorted(AUTO_CODES) == sorted(ESCALATE_CODES) + sorted(
+    TAXONOMY_AUTO_CODES), "labelling UI codes have drifted from src/taxonomy.py"
 INTENT_KEYS = list(INTENTS.keys())
 
 html = """<!doctype html><html><head><meta charset="utf-8">

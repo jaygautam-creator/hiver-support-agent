@@ -13,7 +13,7 @@ Narrowed in three documented steps:
 |---|---|---|
 | Full dump | 2,811,774 | - |
 | AppleSupport customer->first-reply pairs | 102,086 | one brand, as the assignment requires |
-| Conversation **openers** only | 73,863 | see below |
+| Conversation **openers** only | 73,859 | see below |
 
 27.6% of inbound messages are mid-thread replies to Apple's own clarifying
 question ("Yes it's updated to that one yesterday"). They carry no standalone
@@ -25,7 +25,7 @@ reversible and auditable.
 
 **198 examples in two slices**, drawn with seed `20260909`.
 
-**NATURAL (n=100)** - uniform random over the 73,863 openers. Preserves true
+**NATURAL (n=100)** - uniform random over the 73,859 openers. Preserves true
 class prevalence, so a metric computed on this slice estimates live
 performance. Useless alone for rare classes: `account_access` lands ~3
 examples and its F1 would be noise.
@@ -70,10 +70,18 @@ Three fields per example:
    described below. Corrected rather than left standing, and flagged here
    because the rest of this file is deliberately unrevised.)
 2. **decision** - `auto` or `escalate`.
-3. **reason** - a fixed policy code (E1-E7, A1-A4) from `ESCALATION_POLICY` in
+3. **reason** - a fixed policy code from `ESCALATION_POLICY` in
    `src/taxonomy.py`, not free text. Free text drifts across 198 items; codes
    stay internally consistent and let the report attribute each escalation to a
    specific policy clause.
+
+   Round 1 was labelled under codebook **v1** (E1-E7 / A1-A4). Round 2 is
+   labelled under **v2** (E1-E6 / A1, A2, A4, A5), because v1 was measured and
+   failed: a second annotator reading the same text agreed with the human at
+   kappa 0.08 on escalate/auto. Every code the round-1 labeller actually used
+   (A2, A4, E1, E2, E3) keeps its exact meaning in v2, so the two rounds remain
+   comparable; the retired codes are A3 and E7, which round 1 used zero times.
+   See `golden/CODEBOOK_V2_PROPOSAL.md` and `results/second_annotator.md`.
 
 ## Pilot, and the taxonomy revision it forced
 

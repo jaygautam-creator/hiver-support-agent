@@ -15,12 +15,16 @@
 ## other -> software_bug  (2)
 
 - `596931_596930` Why does my iPad keep doing this 😭 <url>
-- `39617_39616` as fotos e vídeos do meu telefone não carregam mais.. como resolvo?
+- `2332386_2332385` o que tá acontecendo com a bateria do meu celular depois do iOS 11.0.3?? Me explica por favor
 
 ## software_bug -> hardware_or_repair  (2)
 
 - `1128253_1128252` nunca me ha pasado algo así en Apple. Me compro una funda de iPhone, me dura dos meses y en el AppleStore me dicen que es así.
 - `1130507_1130505` Hi there,I have got an iPhone 6 which has stopped working therefore,would it be possible to swipe it with a brand-new one.Thnx
+
+## software_bug -> other  (1)
+
+- `851245_851244` IOS 11 est une catastrophe sur mon IPhone 6 Plus. IOS11.0.2 n’a absolument réglé aucun bug. A quand un retour à la normal?
 
 ## hardware_or_repair -> feedback_or_complaint  (1)
 

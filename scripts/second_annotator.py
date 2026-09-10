@@ -52,7 +52,9 @@ from sklearn.metrics import cohen_kappa_score, f1_score
 
 from src.config import GOLDEN, RESULTS, SEED
 from src.llm import generate
-from src.taxonomy import (DISAMBIGUATION_RULES, ESCALATION_POLICY, INTENTS,
+from src.taxonomy import (AUTO_CODES as TAXONOMY_AUTO_CODES,
+                          ESCALATE_CODES,
+                          DISAMBIGUATION_RULES, ESCALATION_POLICY, INTENTS,
                           LABELS, PRIORITY)
 
 # A third family, on purpose. See DELIBERATE CHOICES above.
@@ -61,8 +63,9 @@ ANNOTATOR_MODEL = "gemma-4-31b-it"
 OUT = RESULTS / "second_annotator.md"
 PREDS = RESULTS / "second_annotator.jsonl"
 
-ESC_CODES = ["E1", "E2", "E3", "E4", "E5", "E6", "E7"]
-AUTO_CODES = ["A1", "A2", "A3", "A4"]
+# Imported, not re-typed -- see src/taxonomy.py.
+ESC_CODES = list(ESCALATE_CODES)
+AUTO_CODES = list(TAXONOMY_AUTO_CODES)
 
 SCHEMA = {
     "type": "object",
@@ -103,7 +106,9 @@ three fields and nothing else.
 
 Apply the definitions literally. Where a message could fit two intents, use the
 stated priority order rather than your own preference. If a message is genuinely
-unintelligible, that is what the 'other' intent and the E7 code are for."""
+unintelligible, that is what the 'other' intent and the A5 code are for -- an
+unintelligible message is auto-handled with one clarifying question, not
+escalated."""
 
 
 def build_prompt(text: str, order: list[str]) -> str:

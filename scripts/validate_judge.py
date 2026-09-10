@@ -143,14 +143,24 @@ def main() -> None:
 
     # ---- verdict ---------------------------------------------------------
     ceiling = (jr.judge_mean >= 2.9).mean()
+    # The canned-vs-agent comparison is READ FROM THE DATA, not typed in. It was
+    # hardcoded as "2.95 against the agent's 2.98" -- and stayed that way after a
+    # re-run moved the agent to 2.80, so a generated report was quoting a stale
+    # figure back at itself while every other number on the page was current.
+    means = jr.groupby("system").judge_mean.mean()
+    canned, agent_m = means.get("trivial"), means.get("agent")
+    cmp_txt = (f"a single constant canned message scores {canned:.2f} against "
+               f"the agent's {agent_m:.2f}"
+               if canned is not None and agent_m is not None
+               else "a single constant canned message scores about the same as "
+                    "the agent")
     lines += ["\n## Verdict\n",
               f"**{ceiling:.0%} of all judged replies scored >= 2.9 out of 3.**",
               "",
               "The judge reliably detects *gross* defects -- fabricated links, "
               "credential requests, obviously wrong actions. It does **not** "
-              "discriminate between adequate and good replies: in the main "
-              "results a single constant canned message scores 2.95 against the "
-              "agent's 2.98. Reply-quality differences in this report are "
+              f"discriminate between adequate and good replies: in the main "
+              f"results {cmp_txt}. Reply-quality differences in this report are "
               "therefore **not supported by the judge**, and the rubric needs "
               "either harsher anchors or forced pairwise comparison before any "
               "such claim can be made."]

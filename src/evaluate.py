@@ -94,7 +94,6 @@ def simple_oof(gold: pd.DataFrame, retriever) -> dict[str, "object"]:
     on a collapsed label that groups singletons together; the model still trains
     on the true labels.
     """
-    dec_ok = gold[gold["decision_complete"]]
     counts = gold["intent"].value_counts()
     strat = gold["intent"].where(gold["intent"].map(counts) >= 5, "_rare")
     n_splits = min(5, strat.value_counts().min())
@@ -114,7 +113,7 @@ def simple_oof(gold: pd.DataFrame, retriever) -> dict[str, "object"]:
     return preds
 
 
-def run_systems(gold: pd.DataFrame, train: pd.DataFrame) -> pd.DataFrame:
+def run_systems(gold: pd.DataFrame) -> pd.DataFrame:
     """Run all three systems over every golden example."""
     from src.agent import run as agent_run
 
@@ -160,6 +159,7 @@ def judge_replies(preds: pd.DataFrame, workers: int = 3,
     global interval in src/llm.py caps the rate and the pool only fills the gaps.
     Results are reassembled by index, never by completion order.
     """
+    import threading
     from concurrent.futures import ThreadPoolExecutor
 
     from src.judge import score
@@ -202,13 +202,16 @@ def judge_replies(preds: pd.DataFrame, workers: int = 3,
     rows = list(judged.itertuples(index=False))
     agent_ctx = {r.pair_id: r.retrieved for r in rows if r.system == "agent"}
     done = [0]
+    done_lock = threading.Lock()
 
     def one(item):
         i, r = item
         ex = json.loads(r.retrieved) or json.loads(agent_ctx.get(r.pair_id, "[]"))
         s = score(r.customer_text, r.reply, ex)
-        done[0] += 1
-        print(f"  judged {done[0]}/{len(rows)}", flush=True)
+        with done_lock:
+            done[0] += 1
+            n = done[0]
+        print(f"  judged {n}/{len(rows)}", flush=True)
         return i, {"groundedness": s.groundedness, "action": s.action,
                    "tone": s.tone, "safety_violation": s.safety_violation,
                    "judge_note": s.note, "judge_mean": s.mean}
@@ -340,7 +343,7 @@ def main() -> None:
     print(f"Evaluating on all {len(gold)} hand-labelled examples "
           f"(cross-validated; no held-out split at this sample size)")
 
-    preds = run_systems(gold, gold)
+    preds = run_systems(gold)
     if not args.no_judge:
         preds = judge_replies(preds)
 
@@ -358,10 +361,18 @@ def main() -> None:
              f"Classes with zero gold examples "
              f"({', '.join(sorted(set(LABELS) - set(gold.intent)))}) are "
              f"**unmeasured** and excluded from macro-F1.\n"]
+    # Sizes are read off the data, never hardcoded: these titles said "all 40"
+    # / "n=24" / "n=16" as literals, so growing the golden set would have
+    # relabelled the tables with the old counts while the numbers underneath
+    # changed.
+    n_nat = int((gold["slice"] == "natural").sum())
+    n_tgt = int((gold["slice"] == "targeted").sum())
     for title, tbl in [
-        ("Intent -- all 40", intent_table(preds)),
-        ("Intent -- natural slice (deployment estimate, n=24)", intent_table(preds, "natural")),
-        ("Intent -- targeted slice (diagnostic only, n=16)", intent_table(preds, "targeted")),
+        (f"Intent -- all {len(gold)}", intent_table(preds)),
+        (f"Intent -- natural slice (deployment estimate, n={n_nat})",
+         intent_table(preds, "natural")),
+        (f"Intent -- targeted slice (diagnostic only, n={n_tgt})",
+         intent_table(preds, "targeted")),
         ("Escalation -- all", escalation_table(preds)),
         ("Reply quality", reply_table(preds)),
     ]:

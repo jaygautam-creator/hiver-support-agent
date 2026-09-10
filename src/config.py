@@ -32,11 +32,10 @@ JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gemini-3.5-flash-lite")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # --- Brand -----------------------------------------------------------------
-# Set after scripts/survey_brands.py. See results/brand_survey.md for why.
-BRAND = os.getenv("BRAND", "")
+# Chosen by measurement, not by volume; see results/brand_survey.md.
+BRAND = "AppleSupport"
 
-# --- Golden set ------------------------------------------------------------
-GOLDEN_N = 200          # assignment allows 150-250
-DEV_N = 50              # inspectable during development
-TEST_N = GOLDEN_N - DEV_N   # opened once, at the end
-JUDGE_AGREEMENT_N = 50  # replies scored by hand, blind, before the judge runs
+# NOTE: the golden-set sizes that used to live here (GOLDEN_N / DEV_N / TEST_N /
+# JUDGE_AGREEMENT_N) were removed. Nothing read them -- the real sizes are set
+# in scripts/build_golden_sample.py and golden/judge_subsample.json -- so they
+# were four constants that looked authoritative and governed nothing.

@@ -15,16 +15,17 @@ from dataclasses import asdict, dataclass
 from src.llm import generate
 from src.retrieve import Example, Retriever
 from src.taxonomy import (DISAMBIGUATION_RULES, ESCALATION_POLICY,
-                          INTENTS, LABELS, PRIORITY)
+                          INTENTS, LABELS, PRIORITY, REASON_CODES)
 
 RESPONSE_SCHEMA = {
     "type": "object",
     "properties": {
         "intent": {"type": "string", "enum": LABELS},
         "decision": {"type": "string", "enum": ["auto", "escalate"]},
-        "reason": {"type": "string",
-                   "enum": ["E1", "E2", "E3", "E4", "E5", "E6", "E7",
-                            "A1", "A2", "A3", "A4"]},
+        # Enum from taxonomy.py, never re-typed here: this list used to be a
+        # literal, so retiring a code would have left the model still able to
+        # emit it.
+        "reason": {"type": "string", "enum": REASON_CODES},
         "reason_text": {"type": "string"},
         "reply": {"type": "string"},
     },
@@ -111,7 +112,18 @@ def run(message: str, retriever: Retriever, k: int = 5) -> AgentOutput:
         json_schema=RESPONSE_SCHEMA,
         temperature=0.0,
     )
-    d = json.loads(raw)
+    # Schema-constrained decoding makes a malformed shape impossible, but not a
+    # TRUNCATED one: if the reply runs into max_output_tokens the JSON is cut
+    # off mid-string and json.loads raises a bare JSONDecodeError several frames
+    # from the cause. Name the cause instead.
+    try:
+        d = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"Agent returned unparseable JSON ({e}); most likely the response "
+            f"hit max_output_tokens and was truncated. First 200 chars: "
+            f"{raw[:200]!r}"
+        ) from e
     return AgentOutput(
         intent=d["intent"],
         decision=d["decision"],

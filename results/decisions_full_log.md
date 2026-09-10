@@ -42,7 +42,7 @@ Non-obvious choices and why. (Assignment asks for 10-15.)
    resolve the issue" would be measuring something this channel never does.
    The target is the brand's actual first-response behaviour.
 
-7. **Scoped to conversation openers (73,863 of 102,086 pairs); multi-turn is an
+7. **Scoped to conversation openers (73,859 of 102,086 pairs); multi-turn is an
    explicit non-goal.** 27.6% of inbound messages are mid-thread replies to the
    brand's own clarifying question -- "Yes it's updated to that one yesterday",
    "Can't even type that without errors". These have no standalone intent, and
