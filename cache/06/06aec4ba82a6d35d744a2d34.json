@@ -1,0 +1,26 @@
+{
+  "key": "06aec4ba82a6d35d744a2d34",
+  "payload": {
+    "model": "gemma-4-31b-it",
+    "system": null,
+    "prompt": "Pick 'a'. Respond as JSON.",
+    "temperature": 0.0,
+    "max_output_tokens": 64,
+    "json_schema": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      "required": [
+        "intent"
+      ]
+    }
+  },
+  "response": "{\"intent\": \"a\"}"
+}

@@ -100,8 +100,23 @@ def generate(
             except Exception as e:  # noqa: BLE001 - free tier surfaces many shapes
                 last_err = e
                 msg = str(e).lower()
-                retryable = any(
-                    s in msg for s in ("429", "resource_exhausted", "503", "500", "unavailable", "timeout")
+                # Matched on the exception TYPE first, then on message text.
+                # Text matching alone silently missed real transients: httpx
+                # raises ReadTimeout("[Errno 60] Operation timed out"), whose
+                # message contains "timed out" and not "timeout", so a plain
+                # network hiccup was classified unretryable and killed an entire
+                # multi-hundred-call run at whatever item it happened to hit.
+                # Types are checked by name so this stays free of a hard httpx
+                # import.
+                exc_name = type(e).__name__.lower()
+                retryable = (
+                    any(t in exc_name for t in
+                        ("timeout", "connect", "remoteprotocol", "readerror"))
+                    or any(s in msg for s in
+                           ("429", "resource_exhausted", "503", "500",
+                            "unavailable", "timeout", "timed out",
+                            "deadline", "connection reset", "connection error",
+                            "temporarily", "overloaded"))
                 )
                 if not retryable or attempt == max_retries - 1:
                     raise

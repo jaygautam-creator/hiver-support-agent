@@ -84,8 +84,21 @@ After labelling, `make merge FILE=...` validates and merges the export, and one
 `make repro-live` costs **158 agent calls** — the baselines never call an LLM,
 and the judge subsample is pinned (below), so nothing else re-bills.
 
-Gap 2 is unchanged: `golden/judge_validation.html` holds 42 replies to score
-(~12 min), then `make agreement`.
+Gap 2 is unchanged in substance — a human still has to score the replies — but
+the tool that collects those scores had a bug that would have corrupted them.
+Its keyboard handler picked its target field by looking for the first *unset*
+one, so once an item was fully scored every number key silently wrote to **tone**:
+correcting groundedness changed tone instead, with nothing on screen to say so.
+Fixed with a visible active-field cursor and covered by
+`tests/test_judge_validator.mjs`. `golden/judge_validation.html` holds 42 replies
+to score (~12 min), then `make agreement`.
+
+**Partly addressed, and it found something.** A human study is still missing, but
+an independent model — a *different family* from the agent and judge — relabelled
+the golden set from the same written definitions the human used. It reaches
+kappa 0.47 on intent and **0.08 on escalate/auto**, and it surfaced that the
+escalation policy text is biased toward escalation. That is a finding about the
+codebook, not a substitute for the human study: § *Is the taxonomy reproducible?*
 
 **A note on the judge subsample.** The judge scores a fixed 20 messages x 3
 systems = 60 calls, the free-tier daily ceiling. Those 20 ids used to be drawn
@@ -208,6 +221,75 @@ one because a logistic regression on ~30 imbalanced training labels collapses to
 the majority class. This is where the LLM earns its place — not in
 classification, where a simple model is competitive, but in recognising that a
 locked-out or injured customer needs a human.
+
+> **Read the 0.91 with the next section.** An independent second annotator
+> applying the same written escalation policy reaches only **kappa 0.08** with
+> the human on this exact judgement, and escalates 82% of messages against the
+> human's 28%. The policy text is biased toward escalation, so the target this
+> recall is measured against is not reproducible from the written rules alone.
+> See *Is the taxonomy reproducible?*
+
+### Is the taxonomy reproducible? (second annotator)
+
+`results/second_annotator.md`. An independent model — `gemma-4-31b-it`, a
+different family from both the agent and the judge — relabelled all 40 golden
+items from **exactly what the human labeller saw**: same definitions, same
+disambiguation rules, same policy codes, Apple's reply withheld, no retrieved
+examples, no reply to draft. It is doing the labelling task, not the agent's.
+
+| Field | Agreement | Cohen's kappa |
+|---|---|---|
+| intent (7 classes) | 62% | 0.47 |
+| escalate / auto | 41% | **0.08** |
+| policy reason code | 24% | — |
+
+**This is not the human agreement study the brief asks for** — that gap is still
+open. Two readers of the same definitions can agree and both be wrong, so
+nothing here shows the labels are *correct*. What it measures is whether the
+written taxonomy is **reproducible**, and on the escalation half the answer is
+no: kappa 0.08 is chance.
+
+**The disagreement is one-directional, which is what makes it diagnostic.**
+
+| | escalation rate |
+|---|---|
+| human (gold) | 28% |
+| agent | 42% |
+| second annotator | 82% |
+
+22 items the human marked `auto` the annotator marked `escalate`; only 1 went the
+other way. Its two most-used codes were **E7** (11 uses) and **E6** (8). Reading
+them literally explains the whole effect:
+
+- **E7 — "unintelligible *or the agent's own confidence is low*."** A conscientious
+  reader reaches for E7 whenever unsure, so it functions as a catch-all rather
+  than a criterion.
+- **E6 — "severe dissatisfaction ... or sustained abuse."** This corpus is angry,
+  profane Twitter complaints; the sampling frame has a `hard_profanity` stratum
+  precisely because they are common. Applied literally, E6 fires on ordinary
+  venting.
+- The auto side has **no positive criteria at all** — the policy says
+  "AUTO-HANDLE otherwise". Seven ways to escalate and no way to stay.
+
+**What this costs the headline escalation number.** The agent's recall of 0.91 is
+measured against a target a second reader of the same written policy would not
+reproduce. The human labeller applied restraint that the policy text does not
+encode — the gold escalation labels contain unwritten judgement. And the agent
+shows a milder version of the same drift (42% vs 28%), which is consistent with
+it reading the same escalate-biased policy. The recall number is not *wrong*, but
+it is partly a measure of how liberally the policy reads, not only of how well
+the agent triages. The 0.63 precision is the visible edge of the same effect.
+
+**What I would change:** E6 and E7 need mechanical tests the way the intent
+definitions got them after the pilot (`DISAMBIGUATION_RULES`), and the auto side
+needs positive criteria instead of "otherwise". That is a codebook fix, and it
+would have to happen *before* the 158 round-2 labels, not after — relabelling
+against a policy that two readers apply differently just adds more items with the
+same ambiguity baked in.
+
+The report also emits a **30-item re-review queue**: exactly the items where an
+independent reader chose differently. That is a better second pass than a random
+sample, and it is the practical output of this whole exercise.
 
 ### Reply quality (paired subsample: 20 messages x 3 systems)
 
@@ -383,6 +465,8 @@ product is criticised but nothing is actually broken.
 | `scripts/make_labeller.py` | Builds `golden/label.html` — blind-only, pre-labels stripped before serialisation |
 | `scripts/merge_labels.py` | Validates a label export and merges it; refuses on any inconsistency |
 | `tests/test_labeller.mjs` | Tests the labelling tool's state machine (`make test-labeller`) |
+| `scripts/second_annotator.py` | An independent model relabels the golden set; measures whether the taxonomy is reproducible |
+| `tests/test_judge_validator.mjs` | Tests the reply-scoring tool, incl. a regression for the wrong-field write |
 | `golden/judge_subsample.json` | The 20 pinned judge messages, and why they are pinned |
 | `golden/LABELLING_NOTE.md` | Sampling frame, scheme, protocol, limitations, round-2 appendix |
 | `DECISIONS.md` | Decision log |

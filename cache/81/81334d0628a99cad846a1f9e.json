@@ -1,0 +1,26 @@
+{
+  "key": "81334d0628a99cad846a1f9e",
+  "payload": {
+    "model": "gemini-3.5-flash",
+    "system": null,
+    "prompt": "Pick 'a'. Respond as JSON.",
+    "temperature": 0.0,
+    "max_output_tokens": 64,
+    "json_schema": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "type": "string",
+          "enum": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      "required": [
+        "intent"
+      ]
+    }
+  },
+  "response": ""
+}

@@ -124,3 +124,40 @@ fresh sample buys no new information. The ids now live in
 full 198, because the 40 were drawn uniformly at random from all 198 before any
 label existed. The honest cost — 10% of the set judged rather than 50% — is
 stated in the README rather than absorbed silently.
+
+**19. A second annotator was run as an independent model, not as a stand-in for a
+human.** The brief asks for human agreement and that gap stays open; a model
+cannot close it, because two readers of the same definitions can agree and both
+be wrong. What a second reader *can* establish is whether the written taxonomy is
+reproducible at all. It was given exactly the human's inputs — same definitions,
+same disambiguation rules, same policy codes, Apple's reply withheld, no
+retrieved examples, no reply to draft — and deliberately a **different model
+family** (Gemma, not Gemini), so the result is not agreement-by-shared-lineage
+with the agent.
+
+**20. The escalation policy, not the model, is the weakest link — and the second
+annotator is what exposed it.** Intent reaches kappa 0.47; escalate/auto reaches
+**0.08**, which is chance. The disagreement is one-directional: 22 items the
+human called `auto` the annotator called `escalate`, against 1 the other way, and
+escalation rates run 28% (human) / 42% (agent) / 82% (annotator). The cause is in
+the codebook: E7 ends "or the agent's own confidence is low" and E6 covers
+"severe dissatisfaction ... or sustained abuse" on a corpus of angry, profane
+tweets, while the auto side has no positive criteria at all — it is "AUTO-HANDLE
+otherwise". Seven ways out and no way to stay. So the agent's 0.91 escalation
+recall is measured against a target that is not reproducible from the written
+rules, and the human labels encode restraint the policy never states. The fix is
+mechanical tests for E6/E7 and positive auto criteria — and it belongs *before*
+the 158 round-2 labels, since relabelling under an ambiguous policy only
+manufactures more ambiguous labels.
+
+**21. A transient network error was killing whole runs, silently.**
+`src/llm.py` classified retryable failures by substring, testing for `"timeout"`.
+httpx raises `ReadTimeout("[Errno 60] Operation timed out")` — *timed out*, two
+words — so an ordinary network blip was judged unretryable and aborted the entire
+run at whatever call it struck. It killed the 40-item annotation pass twice
+before being diagnosed, and it sits on the same path as the 158-call
+`make repro-live`. Now matched on exception type first (`ReadTimeout`,
+`ConnectTimeout`, `RemoteProtocolError`) plus a wider message list, verified
+against seven cases including that `400 INVALID_ARGUMENT` and `403
+PERMISSION_DENIED` still fail fast — retrying a real bug eight times wastes quota
+and hides the cause.
