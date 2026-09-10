@@ -215,3 +215,28 @@ far outside it. Writing the prediction down first is what makes the second numbe
 evidence rather than a story told afterwards -- and if it had come back at 0.3,
 that would have been the finding, and 158 items would not have been labelled
 under v2.
+
+**26. The retrieval component was ablated, it lost, and it was kept anyway.**
+Nothing had ever tested whether the 73k-document TF-IDF index changes the
+output, so the agent was re-run over the same 40 items with `k=0` -- no examples,
+taxonomy and policy only. Three predictions were written into
+`scripts/ablate_retrieval.py` first, and all three failed: intent barely moved
+(as predicted) but escalation recall moved **0.73 -> 0.91** (not predicted),
+groundedness did **not** drop (predicted it would), and fabricated URLs stayed at
+0% (predicted they would appear). Removing the grounding component improved every
+headline metric and did not move the one metric it exists to protect.
+
+Two consequences. First, the 0% fabricated-URL rate is produced by the prompt's
+explicit "never write a URL" instruction, not by the grounding -- the report had
+implied otherwise and that was wrong. Second, the recall gain is the exact shape
+predicted by failure mode 3 (retrieved examples show Apple self-serving a case,
+so grounding out-argues policy), which turns an asserted mechanism into a
+measured one.
+
+**The default stays k=5.** k=0 wins on these 40 items, which is the reason not to
+adopt it: this is the evaluation set, its errors have already been read, and the
+whole effect is two items with a bootstrap CI whose lower bound is zero.
+Switching architecture to whatever scores best on 40 already-inspected examples
+is the same error this report spends a section warning about. The decision is
+deferred to the finished 150-item set, and what would justify it is written down
+in `results/ablation_retrieval.md`.

@@ -1,6 +1,6 @@
 .PHONY: help setup data survey subsample taxonomy sample prelabel label judge-tool \
         merge test test-labeller test-judge-validator repro repro-live anchoring agreement \
-        second-annotator validate-judge clean
+        second-annotator validate-judge ablate clean
 
 help:
 	@echo "REPRODUCE"
@@ -13,6 +13,7 @@ help:
 	@echo "  make second-annotator  independent model relabels the golden set,"
 	@echo "                     measuring how unambiguous the taxonomy is"
 	@echo "  make validate-judge    4 automated judge checks -> results/judge_validation.md"
+	@echo "  make ablate            k=0 retrieval ablation -> results/ablation_retrieval.md"
 	@echo ""
 	@echo "REBUILD FROM RAW (optional; subsample is committed)"
 	@echo "  make setup / data / survey / subsample / taxonomy / sample"
@@ -84,6 +85,11 @@ repro-live:
 # ~32 judge calls, so it is deliberately not part of `make repro`.
 validate-judge:
 	python3 -m scripts.validate_judge
+
+# Re-runs the agent with NO retrieved examples. The prediction is written into
+# the script's docstring before the run; all three of them failed.
+ablate:
+	python3 -m scripts.ablate_retrieval
 
 anchoring:
 	python3 -m scripts.measure_anchoring

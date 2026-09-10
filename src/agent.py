@@ -93,6 +93,17 @@ language, naming the specific signal in the message."""
 
 
 def _prompt(message: str, examples: list[Example]) -> str:
+    if not examples:
+        # k=0, the retrieval ablation. The header is dropped entirely rather
+        # than left above an empty list: "HOW APPLE HAS HANDLED SIMILAR
+        # MESSAGES:" followed by nothing invites the model to fill the gap from
+        # its own priors, which is the opposite of what the ablation is testing.
+        return (
+            f"No historical examples are available for this message. Answer from "
+            f"the taxonomy and policy alone.\n\n"
+            f"{'=' * 60}\n"
+            f"INCOMING CUSTOMER MESSAGE:\n{message}"
+        )
     ex = "\n\n".join(
         f"[similarity {e.score:.2f}]\nCUSTOMER: {e.customer_text}\nAPPLE REPLIED: {e.brand_reply}"
         for e in examples
@@ -105,7 +116,7 @@ def _prompt(message: str, examples: list[Example]) -> str:
 
 
 def run(message: str, retriever: Retriever, k: int = 5) -> AgentOutput:
-    examples = retriever.query(message, k=k)
+    examples = retriever.query(message, k=k) if k > 0 else []
     raw = generate(
         _prompt(message, examples),
         system=SYSTEM,

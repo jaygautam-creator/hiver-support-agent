@@ -250,6 +250,56 @@ that is right twice as often. Whether that trade is correct is a business call
 about the cost ratio, not something this evaluation can settle — and with a
 recall CI of [0.45, 1.00] at n=11, it cannot settle it either way.
 
+### Does retrieval actually do anything? (ablation)
+
+The brief asks for replies "grounded in how that brand has historically resolved
+similar issues", and this repo answers that with a 73k-document TF-IDF index. It
+is the single most expensive component here and nothing had ever tested whether
+removing it changes anything. `results/ablation_retrieval.md`: same agent, same
+prompt, same model, same 40 items, **k=0** — no examples, taxonomy and policy
+only. Three predictions were written into `scripts/ablate_retrieval.py` before
+the run. **All three failed.**
+
+| Metric | k=5 (shipped) | k=0 (no retrieval) | Δ |
+|---|---|---|---|
+| Intent macro-F1 | 0.53 | 0.56 | +0.03 |
+| Escalate precision | 0.80 | 0.83 | +0.03 |
+| **Escalate recall** | **0.73** | **0.91** | **+0.18** |
+| Missed escalations | 3 | 1 | −2 |
+| Reason-code accuracy | 0.60 | 0.62 | +0.03 |
+| Judge groundedness | 2.75 | 2.70 | −0.05 |
+| Fabricated URLs | 0% | 0% | 0pp |
+
+**Removing the grounding component improved every headline metric, and the one
+metric it exists to protect did not move.**
+
+The honest size of that: the recall delta is +0.182, 95% CI [+0.00, +0.45] by
+paired bootstrap over 11 gold escalations — it does not cross zero, but its lower
+bound *is* zero and the entire effect is **two items**. Two items is not a
+result. It is a signal.
+
+**It points at a mechanism the report had only asserted.** Failure mode 3 says:
+*Apple publishes an article for this, the retrieved examples show Apple linking
+it, so the agent grounds correctly and escalates wrongly — grounding and policy
+conflict, and grounding wins.* Removing the examples is what that hypothesis
+predicts, and the two recovered escalations are exactly its shape. This is the
+first evidence for it rather than a story about it.
+
+**Two things this also settles.** The 0% fabricated-URL rate survives k=0
+intact, so that discipline comes from the prompt's explicit "never write a URL"
+instruction, not from the grounding — the report previously implied the examples
+were what kept it honest, and that was wrong. And retrieval was *suppressing the
+customer's language*: on a Spanish message, k=5 replied in English because every
+retrieved example was English, while k=0 replied in Spanish.
+
+**The shipped default stays k=5, and the reason matters.** k=0 wins on these 40
+items, which is exactly why it is not being adopted. This is the evaluation set,
+its errors have already been read, and switching architecture to whatever scores
+best on 40 already-inspected examples is the same error as tuning a threshold on
+the test set — the one this report spends a section warning about. Adopting it
+needs the finished 150-item set, the recall CI clear of zero, and a groundedness
+check that does not depend on a judge measured at 67% test-retest stability.
+
 ### Is the taxonomy reproducible? (second annotator)
 
 This is the measurement that forced the codebook rewrite above, so it is
@@ -481,7 +531,7 @@ cost is that the judged subsample is 10% of the final set rather than 50%.
 ## What is misleading about my headline number?
 
 *"Escalates at 27% against the human's 30%, precision 0.80"* is misleading in at
-least nine ways, in rough order of severity.
+least ten ways, in rough order of severity.
 
 **1. n = 40.** Below the brief's minimum of 150. The escalation recall of 0.73
 rests on **11 gold escalations** and its 95% CI is [0.45, 1.00] — an interval so
@@ -499,13 +549,21 @@ test has not been run. The gold labels themselves are also still v1 labels: no
 code the human used changed meaning, so on paper nothing moves, but "on paper"
 is an argument and not a re-verification.
 
-**3. Two of seven intents are unmeasured.** `how_to` and `billing_or_purchase`
+**3. A version of this system with the retrieval component deleted scores
+better on every headline number.** Recall 0.73 → 0.91, macro-F1 0.53 → 0.56,
+groundedness unchanged (§ *Does retrieval actually do anything?*). The effect is
+two items and its CI touches zero, so it is a signal rather than a result — but
+the headline is quoted for the shipped configuration, and a cheaper
+configuration beat it on this set. Anyone reading the architecture as
+load-bearing should read that section first.
+
+**4. Two of seven intents are unmeasured.** `how_to` and `billing_or_purchase`
 have zero gold examples. Macro-F1 is over 5 classes, not 7. The agent's
 `billing_or_purchase` behaviour is completely untested — and R3 routes every
 disputed charge to escalation, so an untested class sits directly on the
 escalation path.
 
-**4. Recall went *down* in the last revision, and the report leads with the
+**5. Recall went *down* in the last revision, and the report leads with the
 metrics that went up.** 0.91 → 0.73, one miss becoming three. The section above
 argues that v1's recall was partly bought by an escalate-when-unsure policy, and
 I believe that argument — but a reader should notice that I rewrote a document,
@@ -513,29 +571,29 @@ the number this report calls most important got worse, and the headline sentence
 now quotes precision and escalation rate instead. Both framings are in
 § *Rewriting the escalation codebook*; the older one is not deleted.
 
-**5. One of the three misses is the worst kind.** *"help i forgot my restrictions
+**6. One of the three misses is the worst kind.** *"help i forgot my restrictions
 passcode"* was auto-handled as a `how_to`. It is a credential reset — exactly the
 E1 case that must never be automated, and it survived the codebook rewrite
 untouched.
 
-**6. Accuracy is barely above the majority-class floor.** 0.71 vs 0.67 on the
+**7. Accuracy is barely above the majority-class floor.** 0.71 vs 0.67 on the
 natural slice. Anyone quoting the accuracy figure would be quoting the prior.
 
-**7. The judge cannot tell the agent apart from a canned message.** One constant
+**8. The judge cannot tell the agent apart from a canned message.** One constant
 reply scores 2.95 and the agent 2.80, with 85% of all replies at the ceiling.
 Under v1 the same comparison ran 2.95 vs 2.98 — the ordering flipped and neither
 gap means anything. So while the intent and escalation numbers are real
 measurements, any claim that the agent writes *better replies* is not supported
 by my own evaluation. This is the finding I would most want a reader to notice.
 
-**8. The judge shares a model family — and a tier — with the agent.**
+**9. The judge shares a model family — and a tier — with the agent.**
 Gemini 3.5 Flash Lite judges Gemini 3.1 Flash Lite. The intended judge was a
 larger model, but three full-flash models hit free-tier daily quota or sustained
 503s mid-run (`results/decisions_full_log.md`, #23). Same lineage and similar
 capacity means the judge likely rewards its own stylistic habits, and it is
 probably a contributor to the ceiling effect above.
 
-**9. The golden set is not free of the process that made it.** Labels came from
+**10. The golden set is not free of the process that made it.** Labels came from
 a single annotator (the author), on messages sampled with keyword-seeded strata
 that over-select messages containing those keywords. The targeted slice makes
 those classes look easier to detect than they are in the wild. `other` also
@@ -607,20 +665,27 @@ model changed.
    the rubric first. The current 1–3 anchors let almost everything score 3.
    Forced pairwise comparison ("which of these two replies is better, and why")
    would produce a discriminating signal where an absolute scale did not.
-4. **Split the reply out of the single call.** Rewriting the escalation policy
+4. **Settle the retrieval ablation on the finished set.** k=0 currently beats
+   k=5 on every headline metric with groundedness unchanged, on two items and a
+   CI that touches zero. On 150 labels that question is answerable, and the
+   answer decides whether the most expensive component in the repo stays. If it
+   holds, the right design is probably retrieval for the *reply* and no
+   retrieval for the *decision* — the failure-mode-3 mechanism says the examples
+   are what pull the decision toward auto.
+5. **Split the reply out of the single call.** Rewriting the escalation policy
    moved the *replies* (§ *Reply quality*) even though retrieval was unchanged —
    evidence that one call doing three jobs couples them. Two calls, decide then
    draft, would decouple that and probably help reason-code accuracy at the same
    time, since the model would justify a decision it had already made rather
    than producing both at once.
-5. **Confidence + a tunable escalation threshold.** Have the agent emit a
+6. **Confidence + a tunable escalation threshold.** Have the agent emit a
    calibrated probability, then publish a precision/recall curve and pick an
    operating point from the cost ratio rather than accepting whatever the prompt
    produces. With v2 the system moved from over- to under-escalating; a
    threshold makes that a dial instead of a side effect of prose.
-6. **Split `other` into `unintelligible` and `non_english`.** Failure modes 1
+7. **Split `other` into `unintelligible` and `non_english`.** Failure modes 1
    and 2 are taxonomy problems, not model problems.
-7. **An independent-family judge** and a re-run of the agreement study.
+8. **An independent-family judge** and a re-run of the agreement study.
 
 ---
 
@@ -642,6 +707,7 @@ model changed.
 | `scripts/second_annotator.py` | An independent model relabels the golden set; measures whether the taxonomy is reproducible (`make second-annotator`) |
 | `scripts/build_golden_sample.py` | Draws the 198-item sampling frame, natural + targeted strata (`make sample`) |
 | `scripts/validate_judge.py` | The four automated judge checks (`make validate-judge`) |
+| `scripts/ablate_retrieval.py` | k=0 ablation: does the retrieval component earn its place? (`make ablate`) |
 | `tests/test_judge_validator.mjs` | Tests the reply-scoring tool, incl. a regression for the wrong-field write |
 | `golden/judge_subsample.json` | The 20 pinned judge messages, and why they are pinned |
 | `golden/LABELLING_NOTE.md` | Sampling frame, scheme, protocol, limitations, round-2 appendix |
