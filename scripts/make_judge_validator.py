@@ -93,37 +93,56 @@ border-radius:6px;cursor:pointer}
 <h3>Groundedness</h3><div class="btns" id="g"></div>
 <h3>Action</h3><div class="btns" id="a"></div>
 <h3>Tone</h3><div class="btns" id="t"></div>
+<div id="active" style="font-size:12px;color:#2f6f4f;font-weight:600;margin-top:10px"></div>
 <h3>Safety violation</h3><div class="btns safe" id="s"></div>
 <div class="nav"><button id="prev">&larr;</button><button id="next">&rarr;</button>
 <button id="exp" class="exp">Export human_judge.jsonl</button><span class="hint" id="stat"></span></div>
 </div><script>
-const ITEMS=__ITEMS__, KEY='judge_human_v1';
+const ITEMS=__ITEMS__, KEY='judge_human_v2';
 let S=JSON.parse(localStorage.getItem(KEY)||'{}'), i=0;
+// ACTIVE FIELD CURSOR. The first version derived the target field from which
+// fields were still empty -- so once all three were scored, every number key
+// silently wrote to TONE. Correcting groundedness from the keyboard actually
+// changed tone, with nothing on screen to say so, which would have quietly
+// corrupted the agreement study this tool exists to produce. The target field
+// is now explicit and visible.
+const FIELDS=['g','a','t'], FNAME={g:'Groundedness',a:'Action',t:'Tone'};
+let F='g';
 const $=id=>document.getElementById(id);
 function rec(){const u=ITEMS[i].uid; return S[u]=S[u]||{};}
+function firstUnset(){const r=rec(); return FIELDS.find(f=>r[f]===undefined)||null;}
 function render(){
   const it=ITEMS[i], r=rec();
+  $('active').textContent=`scoring: ${FNAME[F]}  (G / A / T to switch, 1-3 to score)`;
   $('cust').textContent=it.customer_text; $('rep').textContent=it.reply;
   $('ex').textContent=it.examples.map(e=>`CUSTOMER: ${e.c}\\nAPPLE: ${e.a}`).join('\\n\\n')||'(none)';
   $('pos').textContent=`${i+1} / ${ITEMS.length}`;
   const done=Object.values(S).filter(x=>x.g&&x.a&&x.t&&x.s!==undefined).length;
   $('cnt').textContent=`${done} scored`;
   $('pbar').style.width=(100*done/ITEMS.length)+'%';
-  for(const f of ['g','a','t'])
+  for(const f of FIELDS){
     $(f).innerHTML=[1,2,3].map(v=>
       `<button data-f="${f}" data-v="${v}" class="${r[f]===v?'sel':''}">${v}</button>`).join('');
+    $(f).style.outline = (f===F) ? '2px solid #2f6f4f' : 'none';
+    $(f).style.outlineOffset = '3px';}
   $('s').innerHTML=[['false','No'],['true','Yes - unsafe']].map(([v,l])=>
     `<button data-f="s" data-v="${v}" class="${String(r.s)===v?'sel':''}">${l}</button>`).join('');
 }
 function set(f,v){const r=rec(); r[f]=(f==='s')?(v==='true'):+v;
+  if(f!=='s') F=f;
   localStorage.setItem(KEY,JSON.stringify(S)); render();}
-function go(d){i=Math.max(0,Math.min(ITEMS.length-1,i+d)); render();}
+function go(d){i=Math.max(0,Math.min(ITEMS.length-1,i+d));
+  F=firstUnset()||'g'; render();}
 document.addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return;
   if(b.dataset.f)set(b.dataset.f,b.dataset.v);
   else if(b.id==='prev')go(-1); else if(b.id==='next')go(1); else if(b.id==='exp')exp();});
 document.addEventListener('keydown',e=>{
   const r=rec(); const k=e.key.toLowerCase();
-  if(k>='1'&&k<='3'){ const f=!r.g?'g':(!r.a?'a':'t'); set(f,k); }
+  // A number always scores the ACTIVE field, never a guessed one. After
+  // scoring, the cursor advances to the next unscored field so a fresh item is
+  // still three keystrokes, but a correction goes where it looks like it goes.
+  if(k>='1'&&k<='3'){ set(F,k); const nx=firstUnset(); if(nx)F=nx; render(); }
+  else if(k==='g'||k==='a'||k==='t'){F=k; render();}
   else if(k==='s')set('s',String(!r.s));
   else if(e.key==='Enter'){e.preventDefault();go(1);}
   else if(e.key==='ArrowRight')go(1); else if(e.key==='ArrowLeft')go(-1);});

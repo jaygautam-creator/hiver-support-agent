@@ -1,5 +1,6 @@
 .PHONY: help setup data survey subsample taxonomy prelabel label judge-tool \
-        merge test-labeller repro repro-live anchoring agreement clean
+        merge test test-labeller test-judge-validator repro repro-live anchoring agreement \
+        second-annotator clean
 
 help:
 	@echo "REPRODUCE"
@@ -9,6 +10,8 @@ help:
 	@echo "ANALYSIS"
 	@echo "  make anchoring     labelling anchoring measurement -> results/anchoring.md"
 	@echo "  make agreement     LLM judge vs human -> results/judge_agreement.md"
+	@echo "  make second-annotator  independent model relabels the golden set,"
+	@echo "                     measuring how unambiguous the taxonomy is"
 	@echo ""
 	@echo "REBUILD FROM RAW (optional; subsample is committed)"
 	@echo "  make setup / data / survey / subsample / taxonomy"
@@ -16,7 +19,7 @@ help:
 	@echo "LABELLING (round 2: the remaining 158, blind)"
 	@echo "  make label         regenerate golden/label.html (blind, unlabelled only)"
 	@echo "  make merge FILE=~/Downloads/labelled.jsonl   validate + merge an export"
-	@echo "  make test-labeller check the labelling tool's own state machine"
+	@echo "  make test          test both labelling tools' state machines"
 	@echo "  make judge-tool    regenerate golden/judge_validation.html"
 
 setup:
@@ -49,8 +52,15 @@ ifndef FILE
 endif
 	python3 -m scripts.merge_labels $(FILE)
 
+# The labelling tools are measurement apparatus: a silent bug in one does not
+# crash anything, it just changes what the data means. Both have already done it.
+test: test-labeller test-judge-validator
+
 test-labeller:
 	node tests/test_labeller.mjs
+
+test-judge-validator:
+	node tests/test_judge_validator.mjs
 
 judge-tool:
 	python3 -m scripts.make_judge_validator
@@ -68,6 +78,12 @@ anchoring:
 
 agreement:
 	python3 -m scripts.judge_agreement
+
+# A different model FAMILY (Gemma, not Gemini) relabels the golden set from the
+# same written definitions the human used. Not a human agreement study -- it
+# measures whether the taxonomy is applicable, and produces a re-review queue.
+second-annotator:
+	python3 -m scripts.second_annotator
 
 clean:
 	rm -rf results/*.md results/*.png results/errors/* results/predictions.jsonl

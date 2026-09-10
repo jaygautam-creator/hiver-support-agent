@@ -37,9 +37,19 @@ def main() -> None:
                          f"and move the export into golden/.")
 
     human = pd.DataFrame([json.loads(l) for l in HUMAN.read_text().splitlines()])
-    human = human[human["h_groundedness"].notna()]
+    # Require ALL THREE dimensions, not just groundedness: every dimension is
+    # later cast with .astype(int), so a half-scored row used to crash this
+    # script partway through rather than being excluded. Partial rows are
+    # dropped and counted, because a stopped-early scoring session is the normal
+    # way this file gets written.
+    need = ["h_groundedness", "h_action", "h_tone"]
+    n_raw = len(human)
+    human = human[human[need].notna().all(axis=1)]
+    if n_raw != len(human):
+        print(f"  dropped {n_raw - len(human)} partially-scored replies "
+              f"({len(human)} fully scored)")
     if human.empty:
-        raise SystemExit("No human scores yet.")
+        raise SystemExit("No fully scored replies yet.")
 
     preds = pd.DataFrame([json.loads(l) for l in PREDS.read_text().splitlines()])
     preds["uid"] = preds["pair_id"] + "::" + preds["system"]
