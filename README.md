@@ -49,7 +49,13 @@ headline something:
 | Blind control on my own labelling pipeline | Fired: +62.4pp anchoring → **158 labels discarded** |
 | Second annotator on the escalation codebook | kappa **0.08** (chance) → codebook rewritten → **0.77** |
 | Ablating the retrieval component | **All three predictions failed**; removing it improved every metric |
+| Splitting the call into decide-then-justify | Reason codes 0.59 → 0.68; **2 of 3 predictions still wrong** |
 | Costing the operating point | Agent beats no-triage at every cost ratio |
+
+Two configurations of this system score better than the shipped one. Neither was
+adopted, because both were measured on the set whose errors had already been
+read — § *What is misleading about my headline number*, item 3. `make
+check-report` pins the numbers above to the artifacts that produce them.
 
 ---
 
@@ -210,7 +216,7 @@ class prior.**
 
 | System | Precision | Recall [95% CI] | Missed escalations | Reason-code accuracy |
 |---|---|---|---|---|
-| **agent** | **0.80** | **0.73 [0.45, 1.00]** | **3** | **0.60** |
+| **agent** | **0.80** | **0.73 [0.45, 1.00]** | **3** | **0.59** |
 | simple | 0.00 | 0.00 | 11 | 0.00 |
 | trivial | 0.00 | 0.00 | 11 | 0.14 |
 
@@ -263,7 +269,7 @@ renumber. Full proposal: `golden/CODEBOOK_V2_PROPOSAL.md`.
 | Escalate precision | 0.63 | **0.80** |
 | Escalate recall | 0.91 | **0.73** |
 | Missed escalations | 1 | **3** |
-| Reason-code accuracy | 0.27 | **0.60** |
+| Reason-code accuracy | 0.27 | **0.59** |
 | Intent macro-F1 | 0.56 | 0.53 |
 | Judge mean, agent replies | 2.98 | 2.80 |
 
@@ -277,7 +283,7 @@ evidence in this report that a prompt-resident *policy* is a component you can
 get wrong and measure, not a detail.
 
 **The reason-code gain is mostly mechanical, and saying so matters.**
-Accuracy went 0.27 → 0.60: 13 items became correct and 1 became wrong. But **9
+Accuracy went 0.27 → 0.59: 13 items became correct and 1 became wrong. But **9
 of those 13** come from retiring `A3` alone — a code the human used zero times
 and the agent used twelve. Only 4 of the 13 come from the rewritten criteria.
 The headline improvement is real but it is largely the removal of a wrong
@@ -291,6 +297,48 @@ everything. v2 trades 2 misses for 6 fewer false escalations and a reason code
 that is right twice as often. Whether that trade is correct is a business call
 about the cost ratio, not something this evaluation can settle — and with a
 recall CI of [0.45, 1.00] at n=11, it cannot settle it either way.
+
+### Can the weakest output be fixed by architecture? (two-stage)
+
+The brief asks for a decision *with a stated reason*, and that reason is the
+worst thing this system produces: the verdict is right 86% of the time, the cited
+clause 59%. `results/two_stage.md`, `make two-stage`: split the single call so
+stage 1 fixes intent and decision, and stage 2 only picks the clause and drafts
+the reply. Predictions registered before the run.
+
+| Metric | 1 call (shipped) | 2 calls |
+|---|---|---|
+| Intent accuracy | 0.600 | 0.600 |
+| Decision accuracy | 0.865 | **0.919** |
+| Escalate precision / recall | 0.80 / 0.73 | **0.83 / 0.91** |
+| Missed escalations | 3 | **1** |
+| **Reason-code accuracy** | **0.595** | **0.676** |
+
+**Two of the three predictions were wrong.** Reason codes improved but fell short
+of the 0.70 predicted (0.676). Decision accuracy was predicted to barely move and
+moved +0.054. The third — reply quality — was never tested, because the judge was
+not run on these replies; that is stated rather than quietly omitted.
+
+**The honest size: 3 items and 2 items.** Reason codes correct went 22 → 25 of
+37, decisions 32 → 34. At n=37, inside an existing recall CI of [0.45, 1.00],
+that is a signal.
+
+**It does not share a bottleneck with the retrieval ablation.** Both changes cut
+the shipped configuration's 3 missed escalations to 1, but they recover *different
+items* — only `869926_869925` is common to both. A "one call doing three jobs is
+the problem" story would be overclaiming, and is not made. What is worth noting
+is that the shared item is *"help i forgot my restrictions passcode"*: the
+credential reset this report calls the worst miss in the set, fixed by two
+independent modifications, neither designed to fix it.
+
+**Not adopted, for the same reason k=0 was not.** This variant has a design
+argument the ablation lacks — a justification produced after a fixed verdict
+cannot be traded against that verdict, which is precisely the auditability the
+brief asks for. The argument is good; the evidence is 3 items on a set whose
+errors have already been read. Applying a looser standard to a change that
+flatters the system than to one that embarrassed it would be worse than either.
+It also costs 2 calls per message against a free tier that is already the
+binding constraint. Recommended, not shipped, until n=150.
 
 ### What should we actually deploy? (cost of an operating point)
 
@@ -350,7 +398,7 @@ the run. **All three failed.**
 | Escalate precision | 0.80 | 0.83 | +0.03 |
 | **Escalate recall** | **0.73** | **0.91** | **+0.18** |
 | Missed escalations | 3 | 1 | −2 |
-| Reason-code accuracy | 0.60 | 0.62 | +0.03 |
+| Reason-code accuracy | 0.59 | 0.62 | +0.03 |
 | Judge groundedness | 2.75 | 2.70 | −0.05 |
 | Fabricated URLs | 0% | 0% | 0pp |
 
@@ -735,7 +783,7 @@ policy (E1) treats credentials as identity; the retrieval evidence says
 
 **4. Reason codes are still the weakest output, even after the codebook fix.**
 The agent's escalate/auto verdict is right 86% of the time; it cites the correct
-clause 60% of the time. That is up from 27% under codebook v1, but most of the
+clause 59% of the time. That is up from 27% under codebook v1, but most of the
 gain came from deleting a code the human never used (§ *Rewriting the escalation
 codebook*), not from better reasoning. The "stated reason" the brief explicitly
 asks for is still the output a reviewer auditing *why* would be misled by most
@@ -811,6 +859,8 @@ model changed.
 | `scripts/validate_judge.py` | The four automated judge checks (`make validate-judge`) |
 | `scripts/ablate_retrieval.py` | k=0 ablation: does the retrieval component earn its place? (`make ablate`) |
 | `scripts/operating_point.py` | Turns precision/recall into expected cost per 1,000 messages (`make operating-point`) |
+| `scripts/two_stage.py` | Decide-then-justify variant, testing whether one call couples the outputs (`make two-stage`) |
+| `scripts/check_report.py` | Pins the README's quoted numbers to the committed results; fails on drift (`make check-report`) |
 | `tests/test_judge_validator.mjs` | Tests the reply-scoring tool, incl. a regression for the wrong-field write |
 | `golden/judge_subsample.json` | The 20 pinned judge messages, and why they are pinned |
 | `golden/LABELLING_NOTE.md` | Sampling frame, scheme, protocol, limitations, round-2 appendix |

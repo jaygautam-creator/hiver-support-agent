@@ -266,3 +266,30 @@ or fail. `src/retrieve.py` was the dangerous one: `Path("cache/retrieval_index.p
 would silently build a fresh 232MB index into the caller's cwd -- minutes of work,
 no error, and a second copy of a file that is deliberately gitignored. `src/config.py`
 already exported ROOT/DATA/RESULTS/CACHE for exactly this; they are now used.
+
+**29. A two-stage decide-then-justify variant was measured and recommended, but
+not shipped.** The brief asks for a decision "with a stated reason" and the
+stated reason was the system's worst output (verdict right 86%, clause 59%). The
+hypothesis: one call producing verdict and justification together lets the model
+pick a plausible-sounding *pair* instead of deciding and then finding the clause
+that applies. Splitting it moved reason codes 0.595 -> 0.676, decision accuracy
+0.865 -> 0.919, and escalation recall 0.73 -> 0.91 with misses 3 -> 1. Two of the
+three registered predictions were still wrong, and the third was never tested --
+all three outcomes are reported.
+
+Not adopted. The gain is 2-3 items on the set whose errors have already been
+read, and it costs double the calls against a binding free-tier quota. The
+consistency point matters more than the metric: the k=0 ablation was withheld for
+exactly this reason, and applying a looser standard to a change that flatters the
+system than to one that embarrassed it would discredit both.
+
+**30. The README's quoted numbers are pinned to the artifacts that produce
+them.** Every result is generated into `results/*.md` and then hand-quoted in the
+report, which is the one link a re-run can silently break -- it had already
+happened twice (a generated report quoting a hardcoded judge score a re-run had
+staled; a "+63 point" claim against a measured +62.4). `make check-report`
+recomputes six load-bearing claims from `results/predictions.jsonl` and
+`results/second_annotator.jsonl` and fails on any mismatch. It caught a
+reason-code accuracy of 0.595 being reported as 0.60 in five places, and a bug in
+itself -- an intent kappa computed over the 39 decision-complete rows instead of
+all 40.

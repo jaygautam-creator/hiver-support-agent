@@ -1,6 +1,6 @@
 .PHONY: help setup data survey subsample taxonomy sample prelabel label judge-tool \
         merge test test-labeller test-judge-validator repro repro-live anchoring agreement \
-        second-annotator validate-judge ablate operating-point clean
+        second-annotator validate-judge ablate operating-point two-stage check-report clean
 
 help:
 	@echo "REPRODUCE"
@@ -15,6 +15,10 @@ help:
 	@echo "  make validate-judge    4 automated judge checks -> results/judge_validation.md"
 	@echo "  make ablate            k=0 retrieval ablation -> results/ablation_retrieval.md"
 	@echo "  make operating-point   expected cost vs cost ratio -> results/operating_point.md"
+	@echo "  make two-stage         decide-then-justify variant -> results/two_stage.md"
+	@echo ""
+	@echo "SELF-CHECK"
+	@echo "  make check-report  verify README's quoted numbers against results/"
 	@echo ""
 	@echo "REBUILD FROM RAW (optional; subsample is committed)"
 	@echo "  make setup / data / survey / subsample / taxonomy / sample"
@@ -96,6 +100,16 @@ ablate:
 # question a support team actually asks.
 operating-point:
 	python3 -m scripts.operating_point
+
+# Splits the single call into decide -> justify. 80 agent calls.
+two-stage:
+	python3 -m scripts.two_stage
+
+# The README quotes generated numbers by hand, which is the one link in the
+# chain a re-run can silently break. This pins the ones a reader would quote
+# back at me. It has already caught a 0.595-reported-as-0.60 drift.
+check-report:
+	python3 -m scripts.check_report
 
 anchoring:
 	python3 -m scripts.measure_anchoring

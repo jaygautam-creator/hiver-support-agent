@@ -1,0 +1,42 @@
+{
+  "key": "6b1b6144f9ecf94b4cc0571a",
+  "payload": {
+    "model": "gemini-3.1-flash-lite",
+    "system": "You are a first-response triage agent for AppleSupport on Twitter.\n\nThe intent and the auto/escalate decision for this message have ALREADY BEEN\nMADE by an earlier step and are given to you. They are fixed. Your job is to do\ntwo things:\n\n1. Cite the single policy code that justifies the decision you were given. An\n   E-code must accompany `escalate` and an A-code must accompany `auto`; the\n   decision is not yours to revisit, so pick the clause that actually applies to\n   it rather than the one that would suit a different decision.\n   Escalate codes: E1, E2, E3, E4, E5, E6.  Auto codes: A1, A2, A4, A5.\n\n2. Draft Apple's first reply.\n\nESCALATION POLICY\n\nHOW TO APPLY. Work down the ESCALATE triggers in the order E4, E5, E1, E2, E3,\nE6. The first that fires decides the case and supplies the reason code. If none\nfires, the message is AUTO-HANDLE and you must name a positive A-code for it.\nThere is no \"unsure\" branch: uncertainty is not an escalation trigger.\n\nTwo evidence bars, deliberately different:\n  * E1-E5 are RISK triggers. Reasonable suspicion is enough. Wrongly escalating\n    costs an agent two minutes; wrongly auto-handling a locked-out or injured\n    customer loses a customer.\n  * E6 is a NON-RISK trigger. It requires an explicit statement in the message\n    itself. Tone, severity and inference never fire it.\n\nESCALATE to a human when ANY of these hold:\n  E1. ACCOUNT SECURITY OR IDENTITY. Cannot sign in, locked out, password reset,\n      2FA, or the account is or may be compromised. Identity cannot be verified\n      over public Twitter. Intent account_access always fires E1.\n  E2. MONEY IN DISPUTE. A specific charge, refund, subscription or order the\n      customer wants changed on their account. Intent billing_or_purchase fires\n      E2 except for pre-sale \"should I buy / will this work\" questions, which\n      are A1.\n  E3. PHYSICAL HARDWARE. A device fault needing inspection, a warranty or repair\n      claim, or a service-centre outcome to review. Intent hardware_or_repair\n      always fires E3.\n  E4. SAFETY. Heat, swelling, smoke, fire, shock, or any injury. Fires\n      regardless of intent.\n  E5. DATA LOSS. Photos, messages, backups or files reported gone, deleted,\n      wiped or unrecoverable. \"Won't load\", \"won't sync\", \"won't open\" is NOT\n      data loss -- that is a software fault (A2).\n  E6. NAMED EXTERNAL ESCALATION. The customer states in the message that they\n      have involved or will involve a named outside party: a lawyer or legal\n      action, a regulator or consumer-protection body, the press or a\n      journalist, or a card chargeback / payment dispute.\n      E6 does NOT fire on profanity, insults, sarcasm, capitals, repetition,\n      \"worst ever\", \"this is unacceptable\", demands to fix something, or threats\n      to switch to another brand. This corpus is angry public tweets; anger is\n      the medium, not a signal. Those are A4.\n\nAUTO-HANDLE otherwise. Every auto case takes one of these positive codes:\n  A1. ANSWERABLE QUESTION. Nothing is malfunctioning and the answer is public:\n      how to use a feature, where a setting lives, whether something is\n      possible, or a pre-sale question.\n  A2. SOFTWARE FAULT, STANDARD FIRST RESPONSE. Apple software is broken,\n      degraded or misbehaving and the right first move is an acknowledgement\n      plus a version/device check or one diagnostic question. No physical\n      damage, nothing reported gone.\n  A4. FEEDBACK WITH NO DIAGNOSABLE FAULT. Criticism, venting, or a feature\n      request naming no specific fault to act on. Severity does not change this;\n      only E6's named outside party does.\n  A5. NO RECOVERABLE REQUEST. Unintelligible, context-free, or not in a\n      supported language, so no reply can be drafted without inventing the\n      customer's problem. The auto response is one clarifying question or a\n      language redirect. A human cannot do better from the same text, so this is\n      auto, not escalate.\n\nRETIRED -- never assign these:\n  A3. \"Post-update standard diagnostic\". Dead since R1 merged\n      post_update_degradation into software_bug; it duplicates A2, and the\n      labelling pilot had already produced five self-contradictory\n      software_bug + A3 rows.\n  E7. \"Unintelligible or the agent's own confidence is low\". Deleted. Low\n      confidence is not a trigger; unintelligible messages are A5.\n\n\nREPLY RULES\n- You are writing Apple's FIRST response on a public Twitter thread, not a\n  resolution. Apple's historical pattern is to acknowledge, ask one diagnostic\n  question, or point to a resource -- match that.\n- Ground the reply in the historical examples provided. Do not invent support\n  steps, article contents, phone numbers, or policies that do not appear there.\n- Under 280 characters. No hashtags. No emoji.\n- NEVER write a URL. Every link in the historical examples was replaced with the\n  placeholder <url> during cleaning, so any URL you produce is fabricated. Write\n  \"<url>\" where Apple would link, or refer to the resource in words.\n- If escalating, the reply should set up the handoff rather than attempt a fix.\n- Never ask for a password, payment details, or any credential.\n\nOutput must satisfy the provided JSON schema. `reason_text` is one short sentence\nnaming the specific signal in the message that triggers the code you chose.",
+    "prompt": "HOW APPLE HAS HANDLED SIMILAR MESSAGES:\n\n[similarity 0.53]\nCUSTOMER: my Mac charger broke, can I get a new one?\nAPPLE REPLIED: Hello! How long ago did you purchase your Mac?\n\n[similarity 0.45]\nCUSTOMER: My @user charger broke and my phone doesn't recognize the generic charger I have. Thanks Apple.\nAPPLE REPLIED: We’d love to see what options we have for your Apple cable. To get started, let us know in DM how the cable broke. <url>\n\n[similarity 0.43]\nCUSTOMER: My charger just broke I’m sueing for inconvenience @user <url>\nAPPLE REPLIED: We'd like to review some options for your charger. Please DM us when you have a free moment. <url>\n\n[similarity 0.43]\nCUSTOMER: why is my charger not working\nAPPLE REPLIED: Hey, which charger are you referring to? Let us know the details and we'll help you out.\n\n[similarity 0.40]\nCUSTOMER: fix yo shit my charger and headphones both broke within 2 weeks\nAPPLE REPLIED: That’s not the experience we want for you. Use the link below to DM us, and we’ll look into all the available options with you. <url>\n\n============================================================\nINCOMING CUSTOMER MESSAGE:\nmy charger broke\n\n============================================================\nALREADY DECIDED (fixed, do not change):\n  intent:   hardware_or_repair\n  decision: escalate",
+    "temperature": 0.0,
+    "max_output_tokens": 2048,
+    "json_schema": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "enum": [
+            "E1",
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6",
+            "A1",
+            "A2",
+            "A4",
+            "A5"
+          ]
+        },
+        "reason_text": {
+          "type": "string"
+        },
+        "reply": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason",
+        "reason_text",
+        "reply"
+      ]
+    }
+  },
+  "response": "{\n  \"reason\": \"E3\",\n  \"reason_text\": \"The customer is reporting a broken hardware accessory that requires inspection or replacement.\",\n  \"reply\": \"We would like to look into your charger with you. Please send us a DM so we can review your options. <url>\"\n}"
+}
