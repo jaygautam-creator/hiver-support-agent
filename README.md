@@ -1,13 +1,55 @@
 # AppleSupport first-response agent
 
-An AI triage agent for **@AppleSupport** built from the Kaggle *Customer Support
-on Twitter* corpus. For each incoming customer message it produces three things:
+An AI triage agent for **@AppleSupport**, built from the Kaggle *Customer Support
+on Twitter* corpus (2.8M tweets → 73,859 conversation openers). For each incoming
+customer message it produces three things in a single schema-constrained call:
 
 1. an **intent**, from a 7-class taxonomy derived from the data;
 2. a **reply**, grounded in how Apple has historically answered similar messages;
 3. an **auto-handle / escalate decision**, citing a specific policy clause.
 
-The evaluation is the point of this repo, so it is documented before the system.
+```mermaid
+flowchart LR
+    A["Customer message"] --> B["TF-IDF retrieval<br/>word 1-2gram + char 3-5gram<br/>73,661 historical pairs"]
+    B -->|"k=5 (message → Apple's reply)"| C
+    D["src/taxonomy.py<br/>7 intents · disambiguation rules<br/>escalation codebook v2"] --> C
+    C["Single Gemini call<br/>JSON schema enforced"] --> E["intent"]
+    C --> F["reply, under 280 chars"]
+    C --> G["auto / escalate<br/>+ policy code"]
+    E & F & G --> H["src/evaluate.py<br/>5-fold CV · bootstrap CIs<br/>vs trivial + simple baselines"]
+    D -.->|"same text, verbatim"| I["Labelling UI"]
+    D -.->|"same text, verbatim"| J["Second annotator"]
+```
+
+`src/taxonomy.py` is one source of truth: the same prose is injected into the
+agent prompt, rendered in the human labelling UI, and handed to the independent
+second annotator. That is what makes it possible to ask whether the *policy* is
+reproducible rather than only whether the *model* is accurate — and the answer
+turned out to be no, twice.
+
+### Headline
+
+| | Agent | Simple baseline | Trivial baseline |
+|---|---|---|---|
+| Intent macro-F1 | **0.53** [0.34, 0.66] | 0.24 | 0.13 |
+| Escalate precision / recall | **0.80** / 0.73 | 0.00 / 0.00 | 0.00 / 0.00 |
+| Escalation rate *(human: 30%)* | **27%** | 0% | 0% |
+| Cost per 1,000 msgs @ R=20 | **917** | 4,208 | 4,167 |
+
+n = 40. **Read every one of those with § *What is misleading about my headline
+number*, which lists ten reasons not to trust them** — including one
+configuration of this system that scores better than the shipped one.
+
+**The evaluation is the point of this repo, so it is documented before the
+system.** Four measurements were run against my own work, and all four cost the
+headline something:
+
+| Measurement | Result |
+|---|---|
+| Blind control on my own labelling pipeline | Fired: +62.4pp anchoring → **158 labels discarded** |
+| Second annotator on the escalation codebook | kappa **0.08** (chance) → codebook rewritten → **0.77** |
+| Ablating the retrieval component | **All three predictions failed**; removing it improved every metric |
+| Costing the operating point | Agent beats no-triage at every cost ratio |
 
 ---
 
@@ -518,6 +560,24 @@ ACTION-based claim in this report is unsupported, and the report makes none.
 4. The 158 verified labels were **discarded**. Only the 40 blind labels survive.
 
 Details: `golden/LABELLING_NOTE.md`, `results/anchoring.md`.
+
+**What keeping them would have cost — measured, not asserted.** The discarded
+labels still exist at `golden/verification_pass_discarded.jsonl`, so the
+counterfactual is checkable rather than rhetorical:
+
+| | Intent accuracy |
+|---|---|
+| Agent scored against the 40 **blind** labels | **60.0%** |
+| Agent scored against the **pre-labels** | **37.5%** |
+| Projected pooled over all 198 if merged | **~42%** |
+
+150 of the 158 verified labels (94.9%) are exactly what the keyword pre-labeller
+wrote, unchanged — so scoring against them is close to scoring the agent against
+a rule set it disagrees with. Keeping them would have *lowered* the headline by
+roughly 18 points while making it meaningless, which is the opposite of the usual
+worry about contaminated labels and the reason the direction is worth stating.
+21 of them also carry `post_update_degradation`, a class deleted two taxonomy
+revisions ago — `make merge` rejects them outright as unknown intents.
 
 **Status.** `golden/label.html` now holds the 158 unlabelled items **in blind
 mode** (~35 minutes of work). It did not before: as committed through
